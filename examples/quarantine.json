@@ -1,0 +1,18 @@
+{
+  "format": "suitediet-quarantine/1",
+  "suite": "synthetic-suite",
+  "tests": [
+    {
+      "caught": [
+        "d6"
+      ],
+      "name": "test_epsilon",
+      "runtime_ms": 260
+    },
+    {
+      "caught": [],
+      "name": "test_eta",
+      "runtime_ms": 90
+    }
+  ]
+}

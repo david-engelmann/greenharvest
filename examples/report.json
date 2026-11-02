@@ -1,0 +1,191 @@
+{
+  "below_the_line": [
+    "test_zeta",
+    "test_delta",
+    "test_epsilon",
+    "test_eta"
+  ],
+  "blocked": [
+    "test_delta",
+    "test_zeta"
+  ],
+  "budget_ms": 600,
+  "format": "suitediet-report/1",
+  "quarantined": [
+    "test_epsilon",
+    "test_eta"
+  ],
+  "ranking": [
+    {
+      "catches": 1,
+      "name": "test_gamma",
+      "rank": 1,
+      "runtime_ms": 45,
+      "unique_catches": 1,
+      "value": "0.022222",
+      "weighted_catches": "1.000000"
+    },
+    {
+      "catches": 3,
+      "name": "test_alpha",
+      "rank": 2,
+      "runtime_ms": 120,
+      "unique_catches": 1,
+      "value": "0.016667",
+      "weighted_catches": "2.000000"
+    },
+    {
+      "catches": 2,
+      "name": "test_beta",
+      "rank": 3,
+      "runtime_ms": 300,
+      "unique_catches": 0,
+      "value": "0.003333",
+      "weighted_catches": "1.000000"
+    },
+    {
+      "catches": 1,
+      "name": "test_zeta",
+      "rank": 4,
+      "runtime_ms": 240,
+      "unique_catches": 0,
+      "value": "0.002083",
+      "weighted_catches": "0.500000"
+    },
+    {
+      "catches": 1,
+      "name": "test_delta",
+      "rank": 5,
+      "runtime_ms": 500,
+      "unique_catches": 1,
+      "value": "0.002000",
+      "weighted_catches": "1.000000"
+    },
+    {
+      "catches": 1,
+      "name": "test_epsilon",
+      "rank": 6,
+      "runtime_ms": 260,
+      "unique_catches": 0,
+      "value": "0.001923",
+      "weighted_catches": "0.500000"
+    },
+    {
+      "catches": 0,
+      "name": "test_eta",
+      "rank": 7,
+      "runtime_ms": 90,
+      "unique_catches": 0,
+      "value": "0.000000",
+      "weighted_catches": "0.000000"
+    }
+  ],
+  "removal_packs": [
+    {
+      "blocking_defects": [],
+      "disposition": "quarantine",
+      "name": "test_eta",
+      "overlap": {},
+      "rank": 7,
+      "record": {
+        "caught": [],
+        "name": "test_eta",
+        "runtime_ms": 90
+      },
+      "runtime_ms": 90,
+      "value": "0.000000",
+      "weighted_catches": "0.000000"
+    },
+    {
+      "blocking_defects": [],
+      "disposition": "quarantine",
+      "name": "test_epsilon",
+      "overlap": {
+        "d6": [
+          "test_zeta"
+        ]
+      },
+      "rank": 6,
+      "record": {
+        "caught": [
+          "d6"
+        ],
+        "name": "test_epsilon",
+        "runtime_ms": 260
+      },
+      "runtime_ms": 260,
+      "value": "0.001923",
+      "weighted_catches": "0.500000"
+    },
+    {
+      "blocking_defects": [
+        "d5"
+      ],
+      "disposition": "blocked",
+      "name": "test_delta",
+      "overlap": {
+        "d5": []
+      },
+      "rank": 5,
+      "record": {
+        "caught": [
+          "d5"
+        ],
+        "name": "test_delta",
+        "runtime_ms": 500
+      },
+      "runtime_ms": 500,
+      "value": "0.002000",
+      "weighted_catches": "1.000000"
+    },
+    {
+      "blocking_defects": [
+        "d6"
+      ],
+      "disposition": "blocked",
+      "name": "test_zeta",
+      "overlap": {
+        "d6": []
+      },
+      "rank": 4,
+      "record": {
+        "caught": [
+          "d6"
+        ],
+        "name": "test_zeta",
+        "runtime_ms": 240
+      },
+      "runtime_ms": 240,
+      "value": "0.002083",
+      "weighted_catches": "0.500000"
+    }
+  ],
+  "suite": "synthetic-suite",
+  "survivor_runtime_ms": 465,
+  "survivors": [
+    "test_gamma",
+    "test_alpha",
+    "test_beta"
+  ],
+  "totals": {
+    "defects_after": 6,
+    "defects_after_list": [
+      "d1",
+      "d2",
+      "d3",
+      "d4",
+      "d5",
+      "d6"
+    ],
+    "defects_before": 6,
+    "defects_before_list": [
+      "d1",
+      "d2",
+      "d3",
+      "d4",
+      "d5",
+      "d6"
+    ],
+    "lost_defects": []
+  }
+}
