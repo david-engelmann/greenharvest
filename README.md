@@ -14,7 +14,8 @@ Suites grow in one direction forever, because deletion feels riskier than bloat 
 - Slice 2 draws the cut line at a runtime budget and ships a removal pack for every test below it, and a defect whose catchers would all be removed blocks the removal and is printed as the block, so the plan loses no catch
 - Slice 2 moves every proposed removal into a quarantine record in the format suitediet-quarantine/1 carrying the full records, deletes nothing, and restores the suite record exactly from the remaining records and the quarantine record
 - Slice 2 is the Round 1 work increment and is built on a local branch, and the round closes only after audit and two-axis review and red team and owner approval
-- Closed rounds stand at 1 of 100
+- Rust port slice 1 is built on a local branch and carries the records reading and the ranking and the plan and the quarantine and the restore and the report behind two doors, proven by recorded conformance drawn from the Python, and its audit and two axis review and red team stand landed with the fix pass their findings ordered
+- Closed rounds stand at 2 of 100
 - Seeded in October 2026. Part of the impatient programming portfolio, in the Gate Truth arc
 
 ## Licence

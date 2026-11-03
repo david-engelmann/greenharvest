@@ -59,4 +59,4 @@ Cantfail asks whether a test can fail, suitediet asks which tests earn their run
 
 The tool deletes nothing. Every removal the tool proposes passes through a reversible quarantine before any deletion, and deletion itself stays a human act outside the tool. A defect a test uniquely catches blocks that test's removal, and the block is printed rather than overridden.
 
-All inputs are local files. The inputs are measured records holding runtime and the canary and mutation record and overlap, read from local files only, with synthetic fixtures only and no network in the tool or the tests. The local gate is python -m pytest once the suite exists. The closed round count stands in the README and moves only at a closure.
+All inputs are local files. The inputs are measured records holding runtime and the canary and mutation record and overlap, read from local files only, with synthetic fixtures only and no network in the tool or the tests. The local gate is python -m pytest and cargo test once the crate exists. The closed round count stands in the README and moves only at a closure.

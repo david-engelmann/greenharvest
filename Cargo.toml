@@ -1,0 +1,14 @@
+[package]
+name = "suitediet"
+version = "0.1.0"
+edition = "2021"
+description = "Suite dieting with a safety proof, ranking tests by measured value and shipping every removal with its evidence and a reversible quarantine"
+license = "MIT"
+
+[lib]
+name = "suitediet"
+path = "src/lib.rs"
+
+[[bin]]
+name = "suitediet"
+path = "src/main.rs"
