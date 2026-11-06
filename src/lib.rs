@@ -7,8 +7,9 @@
 //! refusal, the ranking on exact rationals, the plan and the
 //! quarantine and the restore, and the report as a document and as
 //! markdown, and it proves each against recorded conformance drawn
-//! from the landed Python. The command line stays in the Python
-//! package in this slice, as the contract records.
+//! from the landed Python. The closing slice rebuilt the command
+//! line in the binary and retired the Python package, and the
+//! recordings stand as the specification from that slice on.
 
 pub mod bigint;
 pub mod budget;
