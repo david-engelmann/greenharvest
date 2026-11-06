@@ -1,4 +1,4 @@
-//! The canonical written form shared by every suitediet
+//! The canonical written form shared by every greenharvest
 //! document.
 
 use crate::jsonvalue::JsonValue;

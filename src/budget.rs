@@ -14,7 +14,7 @@
 //! refuses it the same way.
 
 use crate::bigint::BigInt;
-use crate::errors::SuitedietError;
+use crate::errors::GreenharvestError;
 use crate::render::repr_string;
 use crate::tables::{in_ranges, STRIP_RANGES};
 
@@ -45,9 +45,9 @@ fn trim_edges(raw: &str, in_set: impl Fn(char) -> bool) -> &str {
 /// Read a budget argument into an exact integer, refusing an
 /// argument that does not stand as a whole number with the
 /// wording that names the argument as written.
-pub fn parse_budget(raw: &str) -> Result<BigInt, SuitedietError> {
+pub fn parse_budget(raw: &str) -> Result<BigInt, GreenharvestError> {
     let refusal = || {
-        SuitedietError::new(format!(
+        GreenharvestError::new(format!(
             "the budget {} is not a whole number of milliseconds",
             repr_string(raw)
         ))

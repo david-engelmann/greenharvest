@@ -1,14 +1,14 @@
 [package]
-name = "suitediet"
+name = "greenharvest"
 version = "0.1.0"
 edition = "2021"
 description = "Suite dieting with a safety proof, ranking tests by measured value and shipping every removal with its evidence and a reversible quarantine"
 license = "MIT"
 
 [lib]
-name = "suitediet"
+name = "greenharvest"
 path = "src/lib.rs"
 
 [[bin]]
-name = "suitediet"
+name = "greenharvest"
 path = "src/main.rs"

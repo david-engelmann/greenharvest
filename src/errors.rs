@@ -1,20 +1,20 @@
-//! The one refusal type every suitediet reading raises.
+//! The one refusal type every greenharvest reading raises.
 //!
-//! Mirrors the Python `SuitedietError`.
+//! Mirrors the Python error type.
 
 use std::fmt;
 
 /// Raised when an input is refused rather than guessed.
 ///
-/// Mirrors the Python `SuitedietError`.
+/// Mirrors the Python error type.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SuitedietError {
+pub struct GreenharvestError {
     message: String,
 }
 
-impl SuitedietError {
+impl GreenharvestError {
     pub fn new(message: impl Into<String>) -> Self {
-        SuitedietError {
+        GreenharvestError {
             message: message.into(),
         }
     }
@@ -24,10 +24,10 @@ impl SuitedietError {
     }
 }
 
-impl fmt::Display for SuitedietError {
+impl fmt::Display for GreenharvestError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.message)
     }
 }
 
-impl std::error::Error for SuitedietError {}
+impl std::error::Error for GreenharvestError {}
