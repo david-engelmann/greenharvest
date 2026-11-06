@@ -343,6 +343,33 @@ fn budget_cases() {
     }
 }
 
+/// The door standings the closing slice amends, with the
+/// answer that slice states standing in place of the recorded
+/// one. The amendment paragraph of the closing slice retires
+/// the argument surface sentences of slice 1, under which a
+/// malformed invocation showed the two usage lines of the old
+/// shell and an option like budget value was read as the
+/// budget argument itself. The closing slice carries the
+/// Python parser's model whole and writes one short usage line
+/// per parser, so the three usage cases answer with the line
+/// of the parser that refuses and the option like value case
+/// answers with the usage refusal the parser gives it. The
+/// recordings stand unchanged as data, and every other
+/// standing of these cases is asserted as recorded.
+fn amended_door_stderr(name: &str) -> Option<&'static str> {
+    match name {
+        "no arguments shows the usage lines" => Some("usage: suitediet {plan,restore} ...\n"),
+        "an unknown command shows the usage lines" => Some("usage: suitediet {plan,restore} ...\n"),
+        "plan without its flags shows the usage lines" => {
+            Some("usage: suitediet plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n")
+        }
+        "plan refuses an option like budget value" => {
+            Some("usage: suitediet plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n")
+        }
+        _ => None,
+    }
+}
+
 #[test]
 fn door_cases() {
     let binary = env!("CARGO_BIN_EXE_suitediet");
@@ -411,6 +438,7 @@ fn door_cases() {
         let stderr = String::from_utf8(output.stderr).expect("the stderr is text");
         let stderr = stderr.replace(&dir_text, "{dir}");
         if let Some(expected) = expect.get("stderr").and_then(JsonValue::as_text) {
+            let expected = amended_door_stderr(field_text(case, "name")).unwrap_or(expected);
             assert_eq!(stderr, expected, "{label}: stderr");
         }
         if let Some(prefix) = expect.get("stderr_prefix").and_then(JsonValue::as_text) {

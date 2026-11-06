@@ -1,0 +1,56 @@
+# The disposition of every test name the contract carries.
+# One line per standing, in the form the contract audit reads.
+# A name covered by a Rust test names the file the test stands
+# in. A name covered by a recording names the recordings file
+# and the case or section that carries its proof. A name that
+# stands under a new Rust test name names the file and the new
+# name it stands under.
+test_a_blocked_pack_names_every_blocking_defect recording-section tests/conformance/port1_cases.json plan
+test_a_blocked_test_never_enters_quarantine recording-section tests/conformance/port1_cases.json plan
+test_a_budget_below_the_best_test_cuts_every_test recording-section tests/conformance/port1_cases.json plan
+test_a_budget_below_the_best_test_cuts_every_test recording-case tests/conformance/cli_cases.json a plan clearing the whole suite
+test_a_budget_covering_the_whole_suite_cuts_nothing recording-section tests/conformance/port1_cases.json plan
+test_a_budget_covering_the_whole_suite_cuts_nothing recording-case tests/conformance/cli_cases.json a plan covering the whole suite
+test_a_budget_word_carrying_a_non_utf8_byte_is_spelled_by_its_representation rust-test tests/cli.rs
+test_a_defect_counts_in_full_to_its_only_catcher recording-section tests/conformance/port1_cases.json plan
+test_a_duplicate_defect_within_one_test_is_refused recording-section tests/conformance/port1_cases.json reader
+test_a_non_positive_budget_is_refused recording-section tests/conformance/port1_cases.json budget
+test_a_non_positive_runtime_is_refused recording-section tests/conformance/port1_cases.json reader
+test_a_non_whole_number_budget_is_refused_at_the_command_line recording-case tests/conformance/cli_cases.json a budget that is not a number
+test_a_removal_pack_carries_the_record_and_the_exact_overlap recording-section tests/conformance/port1_cases.json plan
+test_a_repeated_document_key_is_refused recording-section tests/conformance/port1_cases.json reader
+test_a_repeated_format_key_cannot_hide_a_wrong_format_name recording-section tests/conformance/port1_cases.json reader
+test_a_repeated_record_key_is_refused recording-section tests/conformance/port1_cases.json reader
+test_a_shared_defect_counts_divided_among_its_catchers recording-section tests/conformance/port1_cases.json plan
+test_a_test_that_catches_nothing_is_clear_when_below_the_line recording-section tests/conformance/port1_cases.json plan
+test_a_test_with_no_unique_catches_is_clear_to_propose recording-section tests/conformance/port1_cases.json plan
+test_a_unique_catch_blocks_removal_even_at_the_lowest_value recording-section tests/conformance/port1_cases.json plan
+test_agents_template_and_annex rust-test tests/setup.rs
+test_an_empty_tests_list_is_refused recording-section tests/conformance/port1_cases.json reader
+test_catchers_are_derived_from_the_records_alone recording-section tests/conformance/port1_cases.json plan
+test_cli_battery_matches_the_python_record rust-test tests/cli.rs
+test_cli_writes_deterministic_outputs recording-case tests/conformance/cli_cases.json a plan written twice stands byte identical
+test_committed_examples_regenerate_byte_identical recording-case tests/conformance/cli_cases.json a plan over the committed example records
+test_contract_has_no_forbidden_dashes rust-test tests/contract.rs
+test_duplicate_test_names_are_refused recording-section tests/conformance/port1_cases.json reader
+test_every_contract_name_is_disposed rust-test tests/contract.rs
+test_identical_records_rank_by_name recording-section tests/conformance/port1_cases.json plan
+test_missing_inputs_are_refused recording-case tests/conformance/cli_cases.json a missing records document
+test_missing_inputs_are_refused recording-case tests/conformance/cli_cases.json a missing remaining document
+test_outputs_carry_no_local_paths recording-case tests/conformance/cli_cases.json a plan over the committed example records
+test_quarantine_carries_only_the_cleared_tests_with_their_full_records recording-section tests/conformance/port1_cases.json plan
+test_ranking_follows_the_stated_tie_rule recording-section tests/conformance/port1_cases.json plan
+test_ranking_uses_exact_values_not_the_rendered_ones recording-section tests/conformance/port1_cases.json plan
+test_records_document_is_read_exactly recording-section tests/conformance/port1_cases.json reader
+test_records_with_a_missing_or_unexpected_field_are_refused recording-section tests/conformance/port1_cases.json reader
+test_restore_refuses_a_quarantine_that_disagrees recording-section tests/conformance/port1_cases.json restore
+test_restore_returns_the_suite_record_exactly recording-section tests/conformance/port1_cases.json restore
+test_restore_undoes_a_plan_that_cleared_every_test recording-case tests/conformance/cli_cases.json a restore of the emptied suite
+test_seed_files_present rust-test tests/setup.rs
+test_the_after_total_never_claims_a_catch_the_plan_loses recording-section tests/conformance/port1_cases.json plan
+test_the_cut_line_keeps_the_longest_prefix_that_fits_the_budget recording-section tests/conformance/port1_cases.json plan
+test_the_markdown_report_states_the_pack_overlap recording-section tests/conformance/port1_cases.json render
+test_totals_count_the_catches_before_and_after recording-section tests/conformance/port1_cases.json plan
+test_two_tests_that_only_cover_each_other_split_clear_and_blocked recording-section tests/conformance/port1_cases.json plan
+test_value_is_weighted_catches_per_millisecond recording-section tests/conformance/port1_cases.json plan
+test_wrong_format_name_is_refused recording-section tests/conformance/port1_cases.json reader
