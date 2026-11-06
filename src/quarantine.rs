@@ -6,7 +6,7 @@
 //! and returns the suite record exactly as it stood before the
 //! plan.
 
-use crate::errors::SuitedietError;
+use crate::errors::GreenharvestError;
 use crate::ingest::{Quarantine, RecordSet};
 use crate::plan::{Plan, DISPOSITION_QUARANTINE};
 use crate::render::repr_string;
@@ -54,9 +54,9 @@ pub fn remaining_records(record_set: &RecordSet, plan: &Plan) -> RecordSet {
 pub fn restore_records(
     remaining: &RecordSet,
     quarantine: &Quarantine,
-) -> Result<RecordSet, SuitedietError> {
+) -> Result<RecordSet, GreenharvestError> {
     if remaining.suite != quarantine.suite {
-        return Err(SuitedietError::new(format!(
+        return Err(GreenharvestError::new(format!(
             "the quarantine record belongs to the suite {} and the remaining records to {}",
             repr_string(&quarantine.suite),
             repr_string(&remaining.suite),
@@ -64,7 +64,7 @@ pub fn restore_records(
     }
     for test in &quarantine.tests {
         if remaining.record_named(&test.name).is_some() {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the quarantined test {} is still standing in the remaining records",
                 test.name
             )));

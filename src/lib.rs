@@ -1,4 +1,4 @@
-//! Suitediet ranks tests by measured value and diets a suite
+//! Greenharvest ranks tests by measured value and diets a suite
 //! safely.
 //!
 //! This crate is the Rust port of the Python package of the same
@@ -27,7 +27,7 @@ pub mod serialize;
 pub mod tables;
 
 pub use budget::parse_budget;
-pub use errors::SuitedietError;
+pub use errors::GreenharvestError;
 pub use ingest::{
     read_quarantine, read_quarantine_text, read_records, read_records_text, read_remaining,
     read_remaining_text, Quarantine, RecordSet, TestRecord,

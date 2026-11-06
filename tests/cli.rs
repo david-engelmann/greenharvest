@@ -17,7 +17,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use suitediet::jsonvalue::{parse_json, JsonValue};
+use greenharvest::jsonvalue::{parse_json, JsonValue};
 
 const TOTAL_CASES: usize = 99;
 const BOUNDARY_CASES: usize = 8;
@@ -31,9 +31,9 @@ fn expected_sections() -> Vec<(&'static str, usize)> {
     ]
 }
 
-const USAGE_TOP: &str = "usage: suitediet {plan,restore} ...\n";
-const USAGE_PLAN: &str = "usage: suitediet plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n";
-const USAGE_RESTORE: &str = "usage: suitediet restore REMAINING QUARANTINE --out OUT\n";
+const USAGE_TOP: &str = "usage: greenharvest {plan,restore} ...\n";
+const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n";
+const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT\n";
 
 fn usage_line(marker: &str) -> &'static str {
     match marker {
@@ -45,7 +45,7 @@ fn usage_line(marker: &str) -> &'static str {
 }
 
 fn binary() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_suitediet"))
+    PathBuf::from(env!("CARGO_BIN_EXE_greenharvest"))
 }
 
 /// A scratch directory carrying the process id in its name,
@@ -57,7 +57,7 @@ struct Scratch {
 impl Scratch {
     fn new(tag: &str) -> Scratch {
         let root =
-            std::env::temp_dir().join(format!("suitediet-cli-{}-{}", std::process::id(), tag));
+            std::env::temp_dir().join(format!("greenharvest-cli-{}-{}", std::process::id(), tag));
         if root.exists() {
             std::fs::remove_dir_all(&root).expect("a stale scratch dir clears");
         }

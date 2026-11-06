@@ -10,7 +10,7 @@
 use std::collections::BTreeSet;
 
 use crate::bigint::BigInt;
-use crate::errors::SuitedietError;
+use crate::errors::GreenharvestError;
 use crate::ingest::{RecordSet, TestRecord};
 use crate::ranking::{catchers_of, derive_catchers, rank_tests, RankedTest};
 
@@ -45,9 +45,9 @@ pub struct Plan {
 
 /// Build the plan for a record set under a budget in whole
 /// milliseconds.
-pub fn build_plan(record_set: &RecordSet, budget_ms: &BigInt) -> Result<Plan, SuitedietError> {
+pub fn build_plan(record_set: &RecordSet, budget_ms: &BigInt) -> Result<Plan, GreenharvestError> {
     if !budget_ms.is_positive() {
-        return Err(SuitedietError::new(
+        return Err(GreenharvestError::new(
             "the budget is not a positive whole number of milliseconds",
         ));
     }

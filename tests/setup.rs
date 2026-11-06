@@ -18,7 +18,7 @@ fn test_seed_files_present() {
     let readme = read("README.md");
     let licence = read("LICENSE");
     let gitignore = read(".gitignore");
-    assert!(readme.contains("# suitediet"));
+    assert!(readme.contains("# greenharvest"));
     assert!(readme.contains("Suite dieting with a safety proof"));
     assert!(readme.contains("## Licence"));
     assert!(readme.contains("Closed rounds stand at 3 of 100"));
@@ -41,7 +41,7 @@ fn test_agents_template_and_annex() {
         .nth(1)
         .expect("the annex stands below its marker");
     assert!(annex.contains(
-        "Ostensible asks whether a test can fail, suitediet asks which tests earn their runtime"
+        "Ostensible asks whether a test can fail, greenharvest asks which tests earn their runtime"
     ));
     assert!(annex.contains("The tool deletes nothing"));
     assert!(annex.contains("reversible quarantine"));

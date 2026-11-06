@@ -1,4 +1,4 @@
-//! The suitediet binary, carrying the command line whole over
+//! The greenharvest binary, carrying the command line whole over
 //! the ported core.
 //!
 //! The shell reads its arguments the way the Python argument
@@ -16,20 +16,20 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use suitediet::bigint::BigInt;
-use suitediet::ingest::{
+use greenharvest::bigint::BigInt;
+use greenharvest::ingest::{
     quarantine_document, read_quarantine, read_records, read_remaining, records_document,
 };
-use suitediet::pytext::bytes_text;
-use suitediet::tables::{in_ranges, NON_PRINTABLE_RANGES};
-use suitediet::{
+use greenharvest::pytext::bytes_text;
+use greenharvest::tables::{in_ranges, NON_PRINTABLE_RANGES};
+use greenharvest::{
     build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, remaining_records,
     report_document, restore_records,
 };
 
-const USAGE_TOP: &str = "usage: suitediet {plan,restore} ...";
-const USAGE_PLAN: &str = "usage: suitediet plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
-const USAGE_RESTORE: &str = "usage: suitediet restore REMAINING QUARANTINE --out OUT";
+const USAGE_TOP: &str = "usage: greenharvest {plan,restore} ...";
+const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
+const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT";
 
 /// The code points of the Unicode decimal number category, as
 /// inclusive ranges, generated from the CPython runtime on the

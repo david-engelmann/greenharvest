@@ -11,18 +11,18 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use suitediet::bigint::BigInt;
-use suitediet::ingest::{
+use greenharvest::bigint::BigInt;
+use greenharvest::ingest::{
     quarantine_document, read_quarantine_text, read_records_text, read_remaining_text,
     records_document,
 };
-use suitediet::jsonvalue::{parse_json, JsonValue, ParseFailure};
-use suitediet::plan::build_plan;
-use suitediet::quarantine::{build_quarantine, remaining_records, restore_records};
-use suitediet::rational::{render_value, Rational};
-use suitediet::render::repr_value;
-use suitediet::report::{markdown_text, report_document};
-use suitediet::{canonical_text, parse_budget};
+use greenharvest::jsonvalue::{parse_json, JsonValue, ParseFailure};
+use greenharvest::plan::build_plan;
+use greenharvest::quarantine::{build_quarantine, remaining_records, restore_records};
+use greenharvest::rational::{render_value, Rational};
+use greenharvest::render::repr_value;
+use greenharvest::report::{markdown_text, report_document};
+use greenharvest::{canonical_text, parse_budget};
 
 const TOTAL_CASES: usize = 173;
 const BOUNDARY_CASES: usize = 21;
@@ -358,13 +358,15 @@ fn budget_cases() {
 /// standing of these cases is asserted as recorded.
 fn amended_door_stderr(name: &str) -> Option<&'static str> {
     match name {
-        "no arguments shows the usage lines" => Some("usage: suitediet {plan,restore} ...\n"),
-        "an unknown command shows the usage lines" => Some("usage: suitediet {plan,restore} ...\n"),
+        "no arguments shows the usage lines" => Some("usage: greenharvest {plan,restore} ...\n"),
+        "an unknown command shows the usage lines" => {
+            Some("usage: greenharvest {plan,restore} ...\n")
+        }
         "plan without its flags shows the usage lines" => {
-            Some("usage: suitediet plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n")
+            Some("usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n")
         }
         "plan refuses an option like budget value" => {
-            Some("usage: suitediet plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n")
+            Some("usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n")
         }
         _ => None,
     }
@@ -372,7 +374,7 @@ fn amended_door_stderr(name: &str) -> Option<&'static str> {
 
 #[test]
 fn door_cases() {
-    let binary = env!("CARGO_BIN_EXE_suitediet");
+    let binary = env!("CARGO_BIN_EXE_greenharvest");
     for (index, case) in cases()
         .iter()
         .filter(|case| field_text(case, "kind") == "door")
@@ -382,7 +384,7 @@ fn door_cases() {
         let inputs = field(case, "inputs");
         let expect = field(case, "expect");
         let dir = std::env::temp_dir().join(format!(
-            "suitediet-conformance-{}-{index}",
+            "greenharvest-conformance-{}-{index}",
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&dir);

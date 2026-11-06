@@ -1,4 +1,4 @@
-//! Reading of the measured record sets suitediet ranks.
+//! Reading of the measured record sets greenharvest ranks.
 //!
 //! A record set stands in one document whose format name is
 //! suitediet-records/1. Reading is exact. A missing field or an
@@ -9,7 +9,7 @@
 use std::path::Path;
 
 use crate::bigint::BigInt;
-use crate::errors::SuitedietError;
+use crate::errors::GreenharvestError;
 use crate::jsonvalue::{parse_json, JsonValue, ParseFailure};
 use crate::pytext::path_display;
 use crate::render::{repr_string, repr_value};
@@ -50,13 +50,13 @@ pub struct Quarantine {
     pub tests: Vec<TestRecord>,
 }
 
-fn read_json(text: &str, what: &str) -> Result<JsonValue, SuitedietError> {
+fn read_json(text: &str, what: &str) -> Result<JsonValue, GreenharvestError> {
     parse_json(text).map_err(|failure| match failure {
         ParseFailure::Invalid(message) => {
-            SuitedietError::new(format!("the {what} is not valid JSON: {message}"))
+            GreenharvestError::new(format!("the {what} is not valid JSON: {message}"))
         }
-        ParseFailure::Boundary => SuitedietError::new(format!("the {what} is not valid JSON")),
-        ParseFailure::DuplicateKey(key) => SuitedietError::new(format!(
+        ParseFailure::Boundary => GreenharvestError::new(format!("the {what} is not valid JSON")),
+        ParseFailure::DuplicateKey(key) => GreenharvestError::new(format!(
             "a JSON object carries the key {} twice",
             repr_string(&key)
         )),
@@ -87,17 +87,17 @@ fn read_test_records(
     raw: &JsonValue,
     what: &str,
     allow_empty: bool,
-) -> Result<Vec<TestRecord>, SuitedietError> {
+) -> Result<Vec<TestRecord>, GreenharvestError> {
     let entries = match raw.as_list() {
         Some(entries) => entries,
         None => {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the {what} tests field is not a list"
             )));
         }
     };
     if entries.is_empty() && !allow_empty {
-        return Err(SuitedietError::new(format!(
+        return Err(GreenharvestError::new(format!(
             "the {what} tests list is empty"
         )));
     }
@@ -107,7 +107,7 @@ fn read_test_records(
         let fields = match entry.as_object() {
             Some(fields) => fields,
             None => {
-                return Err(SuitedietError::new(format!(
+                return Err(GreenharvestError::new(format!(
                     "a test record in the {what} is not an object"
                 )));
             }
@@ -116,7 +116,7 @@ fn read_test_records(
         let mut sorted_keys = keys.clone();
         sorted_keys.sort();
         if sorted_keys.as_slice() != &RECORD_FIELDS[..] {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "a test record in the {what} carries fields {} rather than {}",
                 fields_spelling(&keys),
                 expected_fields_spelling(&RECORD_FIELDS),
@@ -125,13 +125,13 @@ fn read_test_records(
         let name = match entry.get("name") {
             Some(JsonValue::Text(text)) if !text.is_empty() => text.clone(),
             _ => {
-                return Err(SuitedietError::new(format!(
+                return Err(GreenharvestError::new(format!(
                     "a test record in the {what} carries an empty or non text name"
                 )));
             }
         };
         if seen_names.iter().any(|seen| seen == &name) {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the {what} lists the test name {name} twice"
             )));
         }
@@ -142,20 +142,20 @@ fn read_test_records(
                 BigInt::from_decimal(text).expect("a stored integer token reads back")
             }
             _ => {
-                return Err(SuitedietError::new(format!(
+                return Err(GreenharvestError::new(format!(
                     "the test {name} carries a runtime that is not a positive whole number of milliseconds"
                 )));
             }
         };
         if !runtime.is_positive() {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the test {name} carries a runtime that is not a positive whole number of milliseconds"
             )));
         }
         let caught_raw = match entry.get("caught") {
             Some(JsonValue::List(items)) => items,
             _ => {
-                return Err(SuitedietError::new(format!(
+                return Err(GreenharvestError::new(format!(
                     "the test {name} carries a caught field that is not a list"
                 )));
             }
@@ -167,7 +167,7 @@ fn read_test_records(
                     caught.push(text.clone());
                 }
                 _ => {
-                    return Err(SuitedietError::new(format!(
+                    return Err(GreenharvestError::new(format!(
                         "the test {name} catches an empty or non text defect identifier"
                     )));
                 }
@@ -177,7 +177,7 @@ fn read_test_records(
         deduped.sort();
         deduped.dedup();
         if deduped.len() != caught.len() {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the test {name} lists one defect identifier twice"
             )));
         }
@@ -197,19 +197,21 @@ fn read_document(
     format_name: &str,
     what: &str,
     allow_empty: bool,
-) -> Result<(String, Vec<TestRecord>), SuitedietError> {
+) -> Result<(String, Vec<TestRecord>), GreenharvestError> {
     let document = read_json(text, what)?;
     let fields = match document.as_object() {
         Some(fields) => fields,
         None => {
-            return Err(SuitedietError::new(format!("the {what} is not an object")));
+            return Err(GreenharvestError::new(format!(
+                "the {what} is not an object"
+            )));
         }
     };
     let keys: Vec<&str> = fields.iter().map(|(key, _)| key.as_str()).collect();
     let mut sorted_keys = keys.clone();
     sorted_keys.sort();
     if sorted_keys.as_slice() != &DOCUMENT_FIELDS[..] {
-        return Err(SuitedietError::new(format!(
+        return Err(GreenharvestError::new(format!(
             "the {what} carries fields {} rather than {}",
             fields_spelling(&keys),
             expected_fields_spelling(&DOCUMENT_FIELDS),
@@ -221,7 +223,7 @@ fn read_document(
         JsonValue::Text(text) if text == format_name
     );
     if !format_matches {
-        return Err(SuitedietError::new(format!(
+        return Err(GreenharvestError::new(format!(
             "the {what} carries the format name {} rather than {}",
             repr_value(format_value),
             repr_string(format_name),
@@ -230,7 +232,7 @@ fn read_document(
     let suite = match document.get("suite") {
         Some(JsonValue::Text(text)) if !text.is_empty() => text.clone(),
         _ => {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the {what} carries an empty or non text suite name"
             )));
         }
@@ -244,20 +246,20 @@ fn read_document(
 }
 
 /// Read a records document from its text.
-pub fn read_records_text(text: &str) -> Result<RecordSet, SuitedietError> {
+pub fn read_records_text(text: &str) -> Result<RecordSet, GreenharvestError> {
     let (suite, tests) = read_document(text, RECORDS_FORMAT, "records document", false)?;
     Ok(RecordSet { suite, tests })
 }
 
 /// Read a remaining records document from its text, accepting an
 /// empty tests list as a true reading of an emptied suite.
-pub fn read_remaining_text(text: &str) -> Result<RecordSet, SuitedietError> {
+pub fn read_remaining_text(text: &str) -> Result<RecordSet, GreenharvestError> {
     let (suite, tests) = read_document(text, RECORDS_FORMAT, "remaining records document", true)?;
     Ok(RecordSet { suite, tests })
 }
 
 /// Read a quarantine record from its text.
-pub fn read_quarantine_text(text: &str) -> Result<Quarantine, SuitedietError> {
+pub fn read_quarantine_text(text: &str) -> Result<Quarantine, GreenharvestError> {
     let (suite, tests) = read_document(text, QUARANTINE_FORMAT, "quarantine record", true)?;
     Ok(Quarantine { suite, tests })
 }
@@ -266,17 +268,17 @@ pub fn read_quarantine_text(text: &str) -> Result<Quarantine, SuitedietError> {
 /// the line feed character, as the Python file reading delivers
 /// it. The label names the document in the refusals and the path
 /// stands as written.
-pub fn read_file_text(path: &Path, what: &str) -> Result<String, SuitedietError> {
+pub fn read_file_text(path: &Path, what: &str) -> Result<String, GreenharvestError> {
     let display = path_display(path);
     let bytes = match std::fs::read(path) {
         Ok(bytes) => bytes,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the {what} at {display} does not exist"
             )));
         }
         Err(error) => {
-            return Err(SuitedietError::new(format!(
+            return Err(GreenharvestError::new(format!(
                 "the {what} at {display} cannot be read: {error}"
             )));
         }
@@ -284,26 +286,28 @@ pub fn read_file_text(path: &Path, what: &str) -> Result<String, SuitedietError>
     let text = match String::from_utf8(bytes) {
         Ok(text) => text,
         Err(_) => {
-            return Err(SuitedietError::new(format!("the {what} is not valid JSON")));
+            return Err(GreenharvestError::new(format!(
+                "the {what} is not valid JSON"
+            )));
         }
     };
     Ok(text.replace("\r\n", "\n").replace('\r', "\n"))
 }
 
 /// Read a records document from a local file.
-pub fn read_records(path: &Path) -> Result<RecordSet, SuitedietError> {
+pub fn read_records(path: &Path) -> Result<RecordSet, GreenharvestError> {
     let text = read_file_text(path, "records document")?;
     read_records_text(&text)
 }
 
 /// Read a remaining records document from a local file.
-pub fn read_remaining(path: &Path) -> Result<RecordSet, SuitedietError> {
+pub fn read_remaining(path: &Path) -> Result<RecordSet, GreenharvestError> {
     let text = read_file_text(path, "remaining records document")?;
     read_remaining_text(&text)
 }
 
 /// Read a quarantine record from a local file.
-pub fn read_quarantine(path: &Path) -> Result<Quarantine, SuitedietError> {
+pub fn read_quarantine(path: &Path) -> Result<Quarantine, GreenharvestError> {
     let text = read_file_text(path, "quarantine record")?;
     read_quarantine_text(&text)
 }

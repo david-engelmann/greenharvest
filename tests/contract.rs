@@ -9,7 +9,7 @@
 
 use std::path::PathBuf;
 
-use suitediet::jsonvalue::{parse_json, JsonValue};
+use greenharvest::jsonvalue::{parse_json, JsonValue};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
