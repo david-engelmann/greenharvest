@@ -13,6 +13,7 @@
 
 pub mod bigint;
 pub mod budget;
+pub mod catchtable;
 pub mod errors;
 pub mod ingest;
 pub mod jsonvalue;
