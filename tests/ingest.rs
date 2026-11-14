@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use greenharvest::bigint::BigInt;
-use greenharvest::catchtable::read_catch_table_text;
+use greenharvest::catchtable::{read_catch_table_text, read_catch_tables_text};
 use greenharvest::ingest::{read_records_text, records_document};
 use greenharvest::{build_plan, canonical_text, report_document};
 
@@ -232,4 +232,225 @@ fn test_an_unknown_field_in_the_table_is_refused() {
     )
     .expect_err("the unknown entry field refuses");
     assert!(in_entry.to_string().contains("carries fields"));
+}
+
+const SHARD_A: &str = r#"{
+  "format": "greenharvest-catch-table/1",
+  "suite": "probe",
+  "tests": [
+    {"name": "alpha", "runtime_ms": 100},
+    {"name": "beta", "runtime_ms": 50},
+    {"name": "gamma", "runtime_ms": 10}
+  ],
+  "catches": [
+    {"defect": "d1", "caught_by": ["alpha"]},
+    {"defect": "d2", "caught_by": ["alpha", "beta"]}
+  ]
+}"#;
+
+const SHARD_B: &str = r#"{
+  "format": "greenharvest-catch-table/1",
+  "suite": "probe",
+  "tests": [
+    {"name": "alpha", "runtime_ms": 100},
+    {"name": "beta", "runtime_ms": 50},
+    {"name": "delta", "runtime_ms": 25}
+  ],
+  "catches": [
+    {"defect": "d3", "caught_by": ["delta"]},
+    {"defect": "d4", "caught_by": []}
+  ]
+}"#;
+
+#[test]
+fn test_ingest_unions_two_catch_tables_into_one_record_set() {
+    let scratch = Scratch::new("union");
+    let shard_a = scratch.0.join("shard-a.json");
+    std::fs::write(&shard_a, SHARD_A).expect("the first shard is written");
+    let shard_b = scratch.0.join("shard-b.json");
+    std::fs::write(&shard_b, SHARD_B).expect("the second shard is written");
+    let out_path = scratch.0.join("records.json");
+    let output = Command::new(binary())
+        .arg("ingest")
+        .arg(&shard_a)
+        .arg(&shard_b)
+        .arg("--out")
+        .arg(&out_path)
+        .output()
+        .expect("the binary runs");
+    assert!(output.status.success(), "the ingest door exits 0");
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("the output is text"),
+        "uncaught defect 'd4'\n"
+    );
+    let written = std::fs::read_to_string(&out_path).expect("the record set is written");
+    let expected = read_records_text(
+        r#"{"format": "suitediet-records/1", "suite": "probe", "tests": [
+            {"name": "alpha", "runtime_ms": 100, "caught": ["d1", "d2"]},
+            {"name": "beta", "runtime_ms": 50, "caught": ["d2"]},
+            {"name": "delta", "runtime_ms": 25, "caught": ["d3"]},
+            {"name": "gamma", "runtime_ms": 10, "caught": []}
+        ]}"#,
+    )
+    .expect("the hand written record set reads");
+    assert_eq!(written, canonical_text(&records_document(&expected)));
+}
+
+#[test]
+fn test_a_defect_caught_in_one_table_stands_caught_in_the_union() {
+    let table = read_catch_tables_text(&[
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d5", "caught_by": []}]}"#,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100},
+                      {"name": "beta", "runtime_ms": 50}],
+            "catches": [{"defect": "d5", "caught_by": ["beta"]}]}"#,
+    ])
+    .expect("the union reads");
+    assert!(
+        table.uncaught.is_empty(),
+        "a defect caught in one table prints no uncaught line for the union"
+    );
+    let beta = table
+        .record_set
+        .record_named("beta")
+        .expect("beta stands in the union");
+    assert_eq!(beta.caught, vec!["d5".to_string()]);
+}
+
+#[test]
+fn test_a_defect_caught_in_no_table_is_named_once_for_the_union() {
+    let table = read_catch_tables_text(&[
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d9", "caught_by": []}]}"#,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d9", "caught_by": []}]}"#,
+    ])
+    .expect("the union reads");
+    assert_eq!(table.uncaught, vec!["d9".to_string()]);
+    let scratch = Scratch::new("union-uncaught");
+    let shard_a = scratch.0.join("shard-a.json");
+    std::fs::write(
+        &shard_a,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d9", "caught_by": []}]}"#,
+    )
+    .expect("the first shard is written");
+    let shard_b = scratch.0.join("shard-b.json");
+    std::fs::write(
+        &shard_b,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d9", "caught_by": []}]}"#,
+    )
+    .expect("the second shard is written");
+    let output = Command::new(binary())
+        .arg("ingest")
+        .arg(&shard_a)
+        .arg(&shard_b)
+        .arg("--out")
+        .arg(scratch.0.join("records.json"))
+        .output()
+        .expect("the binary runs");
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("the output is text"),
+        "uncaught defect 'd9'\n",
+        "the defect prints once for the union, not once per table"
+    );
+}
+
+#[test]
+fn test_tables_disagreeing_on_the_suite_are_refused() {
+    let error = read_catch_tables_text(&[
+        r#"{"format": "greenharvest-catch-table/1", "suite": "checkout",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": []}"#,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "billing",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": []}"#,
+    ])
+    .expect_err("the suite disagreement refuses");
+    assert_eq!(
+        error.to_string(),
+        "the catch tables do not agree on the suite, 'checkout' against 'billing'"
+    );
+}
+
+#[test]
+fn test_a_test_at_two_runtimes_across_tables_is_refused() {
+    let error = read_catch_tables_text(&[
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": []}"#,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 90}],
+            "catches": []}"#,
+    ])
+    .expect_err("the two runtimes refuse");
+    assert_eq!(
+        error.to_string(),
+        "the test alpha stands at two runtimes across the catch tables, 100 and 90"
+    );
+}
+
+#[test]
+fn test_a_catcher_standing_in_another_table_stands() {
+    let table = read_catch_tables_text(&[
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d1", "caught_by": ["beta"]}]}"#,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "beta", "runtime_ms": 50}],
+            "catches": []}"#,
+    ])
+    .expect("the union reads");
+    let beta = table
+        .record_set
+        .record_named("beta")
+        .expect("beta stands in the union");
+    assert_eq!(beta.caught, vec!["d1".to_string()]);
+}
+
+#[test]
+fn test_a_catcher_standing_in_no_table_is_refused_for_the_union() {
+    let error = read_catch_tables_text(&[
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d1", "caught_by": ["ghost"]}]}"#,
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "beta", "runtime_ms": 50}],
+            "catches": []}"#,
+    ])
+    .expect_err("the unknown catcher refuses");
+    assert_eq!(
+        error.to_string(),
+        "the defect d1 is recorded as caught by the test ghost, which the catch table does not carry"
+    );
+}
+
+#[test]
+fn test_the_union_plans_like_any_other_record_set() {
+    let table = read_catch_tables_text(&[SHARD_A, SHARD_B]).expect("the union reads");
+    let direct = read_records_text(
+        r#"{"format": "suitediet-records/1", "suite": "probe", "tests": [
+            {"name": "alpha", "runtime_ms": 100, "caught": ["d1", "d2"]},
+            {"name": "beta", "runtime_ms": 50, "caught": ["d2"]},
+            {"name": "delta", "runtime_ms": 25, "caught": ["d3"]},
+            {"name": "gamma", "runtime_ms": 10, "caught": []}
+        ]}"#,
+    )
+    .expect("the record set reads");
+    assert_eq!(table.record_set, direct);
+    let budget = BigInt::from_i64(120);
+    let from_union = build_plan(&table.record_set, &budget).expect("the plan builds");
+    let from_direct = build_plan(&direct, &budget).expect("the plan builds");
+    assert_eq!(
+        canonical_text(&report_document(&from_union)),
+        canonical_text(&report_document(&from_direct))
+    );
 }

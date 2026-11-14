@@ -32,6 +32,18 @@ pub struct CatchTable {
     pub uncaught: Vec<String>,
 }
 
+/// The standings of one catch table read whole, before the
+/// transpose. The tests stand in the order the table lists
+/// them and the catches stand by defect in the order the
+/// table lists them, each row holding its catchers in the
+/// order the table names them. The union of slice 4 merges
+/// standings of this shape and the transpose reads one.
+struct TableStanding {
+    suite: String,
+    tests: Vec<(String, BigInt)>,
+    catches: Vec<(String, Vec<String>)>,
+}
+
 fn read_json(text: &str, what: &str) -> Result<JsonValue, GreenharvestError> {
     parse_json(text).map_err(|failure| match failure {
         ParseFailure::Invalid(message) => {
@@ -85,7 +97,7 @@ fn check_fields(
 
 /// Read a catch table document from its text and transpose
 /// it into the record set it makes.
-pub fn read_catch_table_text(text: &str) -> Result<CatchTable, GreenharvestError> {
+fn read_standing(text: &str) -> Result<TableStanding, GreenharvestError> {
     let what = "catch table";
     let document = read_json(text, what)?;
     let fields = match document.as_object() {
@@ -186,9 +198,8 @@ pub fn read_catch_table_text(text: &str) -> Result<CatchTable, GreenharvestError
             )));
         }
     };
-    let mut caught_by_test: Vec<Vec<String>> = names.iter().map(|_| Vec::new()).collect();
     let mut seen_defects: Vec<String> = Vec::new();
-    let mut uncaught: Vec<String> = Vec::new();
+    let mut catches: Vec<(String, Vec<String>)> = Vec::new();
     for entry in catch_entries {
         let entry_fields = match entry.as_object() {
             Some(fields) => fields,
@@ -240,7 +251,33 @@ pub fn read_catch_table_text(text: &str) -> Result<CatchTable, GreenharvestError
                     "the defect {defect} names the test {catcher_name} more than once as a catcher"
                 )));
             }
-            let index = match names.iter().position(|standing| standing == &catcher_name) {
+            row.push(catcher_name);
+        }
+        catches.push((defect, row));
+    }
+    let tests: Vec<(String, BigInt)> = names.into_iter().zip(runtimes).collect();
+    Ok(TableStanding {
+        suite,
+        tests,
+        catches,
+    })
+}
+
+/// Transpose one standing into the record set it makes,
+/// answering the catcher membership question against the
+/// tests the standing carries, which for the union is the
+/// tests of every table standing together.
+fn transpose(standing: TableStanding) -> Result<CatchTable, GreenharvestError> {
+    let names: Vec<&str> = standing
+        .tests
+        .iter()
+        .map(|(name, _)| name.as_str())
+        .collect();
+    let mut caught_by_test: Vec<Vec<String>> = names.iter().map(|_| Vec::new()).collect();
+    let mut uncaught: Vec<String> = Vec::new();
+    for (defect, row) in &standing.catches {
+        for catcher_name in row {
+            let index = match names.iter().position(|standing| standing == catcher_name) {
                 Some(index) => index,
                 None => {
                     return Err(GreenharvestError::new(format!(
@@ -248,29 +285,109 @@ pub fn read_catch_table_text(text: &str) -> Result<CatchTable, GreenharvestError
                     )));
                 }
             };
-            row.push(catcher_name);
             caught_by_test[index].push(defect.clone());
         }
         if row.is_empty() {
-            uncaught.push(defect);
+            uncaught.push(defect.clone());
         }
     }
     let mut tests: Vec<TestRecord> = Vec::new();
-    for (index, name) in names.iter().enumerate() {
+    for (index, (name, runtime)) in standing.tests.iter().enumerate() {
         let mut caught = caught_by_test[index].clone();
         caught.sort();
         tests.push(TestRecord {
             name: name.clone(),
-            runtime_ms: runtimes[index].clone(),
+            runtime_ms: runtime.clone(),
             caught,
         });
     }
     tests.sort_by(|a, b| a.name.cmp(&b.name));
     uncaught.sort();
     Ok(CatchTable {
-        record_set: RecordSet { suite, tests },
+        record_set: RecordSet {
+            suite: standing.suite,
+            tests,
+        },
         uncaught,
     })
+}
+
+/// Read a catch table document from its text and transpose
+/// it, as the reading stood before slice 4.
+pub fn read_catch_table_text(text: &str) -> Result<CatchTable, GreenharvestError> {
+    transpose(read_standing(text)?)
+}
+
+/// Merge the standings of two or more tables into the one
+/// standing of their union, refusing a suite disagreement
+/// and a test standing at two runtimes.
+fn union_standings(standings: Vec<TableStanding>) -> Result<TableStanding, GreenharvestError> {
+    let mut iter = standings.into_iter();
+    let first = iter.next().expect("the union reads at least one table");
+    let suite = first.suite.clone();
+    let mut tests: Vec<(String, BigInt)> = Vec::new();
+    let mut catches: Vec<(String, Vec<String>)> = Vec::new();
+    for standing in std::iter::once(first).chain(iter) {
+        if standing.suite != suite {
+            return Err(GreenharvestError::new(format!(
+                "the catch tables do not agree on the suite, {} against {}",
+                repr_string(&suite),
+                repr_string(&standing.suite),
+            )));
+        }
+        for (name, runtime) in standing.tests {
+            match tests.iter().position(|(held, _)| held == &name) {
+                Some(index) => {
+                    if tests[index].1.cmp(&runtime) != std::cmp::Ordering::Equal {
+                        return Err(GreenharvestError::new(format!(
+                            "the test {name} stands at two runtimes across the catch tables, {} and {}",
+                            tests[index].1.to_decimal_string(),
+                            runtime.to_decimal_string(),
+                        )));
+                    }
+                }
+                None => tests.push((name, runtime)),
+            }
+        }
+        for (defect, row) in standing.catches {
+            match catches.iter().position(|(held, _)| held == &defect) {
+                Some(index) => {
+                    for catcher in row {
+                        if !catches[index].1.contains(&catcher) {
+                            catches[index].1.push(catcher);
+                        }
+                    }
+                }
+                None => catches.push((defect, row)),
+            }
+        }
+    }
+    Ok(TableStanding {
+        suite,
+        tests,
+        catches,
+    })
+}
+
+/// Read two or more catch table documents from their texts
+/// and transpose their union, the slice 4 reading.
+pub fn read_catch_tables_text(texts: &[&str]) -> Result<CatchTable, GreenharvestError> {
+    let mut standings = Vec::new();
+    for text in texts {
+        standings.push(read_standing(text)?);
+    }
+    transpose(union_standings(standings)?)
+}
+
+/// Read one or more catch table documents from local files
+/// and transpose their union.
+pub fn read_catch_tables(paths: &[std::path::PathBuf]) -> Result<CatchTable, GreenharvestError> {
+    let mut standings = Vec::new();
+    for path in paths {
+        let text = read_file_text(path, "catch table")?;
+        standings.push(read_standing(&text)?);
+    }
+    transpose(union_standings(standings)?)
 }
 
 /// Read a catch table document from a local file and
