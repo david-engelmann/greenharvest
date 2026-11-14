@@ -358,9 +358,11 @@ fn budget_cases() {
 /// standing of these cases is asserted as recorded.
 fn amended_door_stderr(name: &str) -> Option<&'static str> {
     match name {
-        "no arguments shows the usage lines" => Some("usage: greenharvest {plan,restore} ...\n"),
+        "no arguments shows the usage lines" => {
+            Some("usage: greenharvest {plan,restore,ingest} ...\n")
+        }
         "an unknown command shows the usage lines" => {
-            Some("usage: greenharvest {plan,restore} ...\n")
+            Some("usage: greenharvest {plan,restore,ingest} ...\n")
         }
         "plan without its flags shows the usage lines" => {
             Some("usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n")

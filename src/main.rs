@@ -17,19 +17,22 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use greenharvest::bigint::BigInt;
+use greenharvest::catchtable::read_catch_table;
 use greenharvest::ingest::{
     quarantine_document, read_quarantine, read_records, read_remaining, records_document,
 };
 use greenharvest::pytext::bytes_text;
+use greenharvest::render::repr_string;
 use greenharvest::tables::{in_ranges, NON_PRINTABLE_RANGES};
 use greenharvest::{
     build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, remaining_records,
     report_document, restore_records,
 };
 
-const USAGE_TOP: &str = "usage: greenharvest {plan,restore} ...";
+const USAGE_TOP: &str = "usage: greenharvest {plan,restore,ingest} ...";
 const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
 const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT";
+const USAGE_INGEST: &str = "usage: greenharvest ingest TABLE --out OUT";
 
 /// The code points of the Unicode decimal number category, as
 /// inclusive ranges, generated from the CPython runtime on the
@@ -406,6 +409,25 @@ const RESTORE_SPEC: Spec = Spec {
     required: &[FlagId::Out],
 };
 
+const INGEST_SPEC: Spec = Spec {
+    options: &[
+        OptionSpec {
+            text: "-h",
+            flag: FlagId::Help,
+        },
+        OptionSpec {
+            text: "--help",
+            flag: FlagId::Help,
+        },
+        OptionSpec {
+            text: "--out",
+            flag: FlagId::Out,
+        },
+    ],
+    positional_count: 1,
+    required: &[FlagId::Out],
+};
+
 /// The standing of one word under a parser's option spellings,
 /// as its classification pass reads it.
 enum Class {
@@ -776,6 +798,7 @@ fn parse_door(words: &[Word], spec: &Spec) -> DoorOutcome {
 enum Door {
     Plan,
     Restore,
+    Ingest,
 }
 
 impl Door {
@@ -783,6 +806,7 @@ impl Door {
         match self {
             Door::Plan => &PLAN_SPEC,
             Door::Restore => &RESTORE_SPEC,
+            Door::Ingest => &INGEST_SPEC,
         }
     }
 
@@ -790,6 +814,7 @@ impl Door {
         match self {
             Door::Plan => USAGE_PLAN,
             Door::Restore => USAGE_RESTORE,
+            Door::Ingest => USAGE_INGEST,
         }
     }
 }
@@ -820,6 +845,8 @@ fn try_command(words: &[Word], pats: &[Pat], start: usize) -> CommandStep {
         Door::Plan
     } else if first.is_text("restore") {
         Door::Restore
+    } else if first.is_text("ingest") {
+        Door::Ingest
     } else {
         return CommandStep::Invalid;
     };
@@ -944,10 +971,33 @@ fn restore_door(parse: DoorParse) -> ExitCode {
     }
 }
 
+fn ingest_door(parse: DoorParse) -> ExitCode {
+    let table_word = parse.positionals[0]
+        .as_ref()
+        .expect("the table positional stands after the parse");
+    let out_word = last_flag(&parse, FlagId::Out);
+    let table = match read_catch_table(&PathBuf::from(&table_word.raw)) {
+        Ok(table) => table,
+        Err(error) => return fail(error.message()),
+    };
+    let text = canonical_text(&records_document(&table.record_set));
+    let out_path = PathBuf::from(&out_word.raw);
+    let display = bytes_text(&out_word.bytes);
+    if let Err(code) = write_output(&out_path, &display, &text) {
+        return code;
+    }
+    let mut stdout = std::io::stdout();
+    for defect in &table.uncaught {
+        let _ = writeln!(stdout, "uncaught defect {}", repr_string(defect));
+    }
+    ExitCode::SUCCESS
+}
+
 fn run(parse: DoorParse, door: Door) -> ExitCode {
     match door {
         Door::Plan => plan_door(parse),
         Door::Restore => restore_door(parse),
+        Door::Ingest => ingest_door(parse),
     }
 }
 
