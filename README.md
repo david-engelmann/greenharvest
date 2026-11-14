@@ -17,7 +17,8 @@ Suites grow in one direction forever, because deletion feels riskier than bloat 
 - Rust port slice 1 is built on a local branch and carries the records reading and the ranking and the plan and the quarantine and the restore and the report behind two doors, proven by recorded conformance drawn from the Python, and its audit and two axis review and red team stand landed with the fix pass their findings ordered
 - Rust port slice 2 is built on a local branch and carries the Python command line whole in the binary, proven by a recorded command line battery drawn from the Python and by recorded conformance, and the Python package and its suite stand retired, and its audit and two axis review and red team stand landed with no findings at or above minor
 - Slice 3 is the catch table front end the ground of the contract promised as later work, a third door named ingest reading a catch table in the format greenharvest-catch-table/1, the defect keyed reading of the same evidence, and writing the record set it transposes to in suitediet-records/1, naming every defect no test caught
-- Closed rounds stand at 4 of 100
+- Slice 4 is the catch table union, the ingest door reading one or more catch tables and writing the record set of their union, so a mutation run sharded across several tables ingests as the one body of evidence it is, with the suites of the tables agreeing, a test standing at one runtime across them, and a defect named uncaught only when no table's test caught it
+- Closed rounds stand at 5 of 100
 - Seeded in October 2026. Part of the impatient programming portfolio, in the Gate Truth arc
 
 ## Licence
