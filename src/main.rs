@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use greenharvest::bigint::BigInt;
-use greenharvest::catchtable::read_catch_table;
+use greenharvest::catchtable::read_catch_tables;
 use greenharvest::ingest::{
     quarantine_document, read_quarantine, read_records, read_remaining, records_document,
 };
@@ -32,7 +32,7 @@ use greenharvest::{
 const USAGE_TOP: &str = "usage: greenharvest {plan,restore,ingest} ...";
 const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
 const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT";
-const USAGE_INGEST: &str = "usage: greenharvest ingest TABLE --out OUT";
+const USAGE_INGEST: &str = "usage: greenharvest ingest TABLE ... --out OUT";
 
 /// The code points of the Unicode decimal number category, as
 /// inclusive ranges, generated from the CPython runtime on the
@@ -349,6 +349,7 @@ struct OptionSpec {
 struct Spec {
     options: &'static [OptionSpec],
     positional_count: usize,
+    positional_more: bool,
     required: &'static [FlagId],
 }
 
@@ -364,6 +365,7 @@ const TOP_SPEC: Spec = Spec {
         },
     ],
     positional_count: 1,
+    positional_more: false,
     required: &[],
 };
 
@@ -387,6 +389,7 @@ const PLAN_SPEC: Spec = Spec {
         },
     ],
     positional_count: 1,
+    positional_more: false,
     required: &[FlagId::BudgetMs, FlagId::OutDir],
 };
 
@@ -406,6 +409,7 @@ const RESTORE_SPEC: Spec = Spec {
         },
     ],
     positional_count: 2,
+    positional_more: false,
     required: &[FlagId::Out],
 };
 
@@ -425,6 +429,7 @@ const INGEST_SPEC: Spec = Spec {
         },
     ],
     positional_count: 1,
+    positional_more: true,
     required: &[FlagId::Out],
 };
 
@@ -690,6 +695,18 @@ fn consume_positionals(
     parse: &mut DoorParse,
     start: usize,
 ) -> usize {
+    if spec.positional_more {
+        let mut pos = start;
+        while let Some(lengths) = match_groups(pats, pos, 1) {
+            for length in lengths {
+                parse
+                    .positionals
+                    .push(positional_value(&words[pos..pos + length]));
+                pos += length;
+            }
+        }
+        return pos;
+    }
     let remaining = spec.positional_count - parse.positionals.len();
     if remaining == 0 {
         return start;
@@ -972,11 +989,20 @@ fn restore_door(parse: DoorParse) -> ExitCode {
 }
 
 fn ingest_door(parse: DoorParse) -> ExitCode {
-    let table_word = parse.positionals[0]
-        .as_ref()
-        .expect("the table positional stands after the parse");
     let out_word = last_flag(&parse, FlagId::Out);
-    let table = match read_catch_table(&PathBuf::from(&table_word.raw)) {
+    let table_paths: Vec<PathBuf> = parse
+        .positionals
+        .iter()
+        .map(|held| {
+            PathBuf::from(
+                &held
+                    .as_ref()
+                    .expect("every table positional stands after the parse")
+                    .raw,
+            )
+        })
+        .collect();
+    let table = match read_catch_tables(&table_paths) {
         Ok(table) => table,
         Err(error) => return fail(error.message()),
     };
