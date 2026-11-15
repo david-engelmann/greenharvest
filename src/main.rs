@@ -25,14 +25,15 @@ use greenharvest::pytext::bytes_text;
 use greenharvest::render::repr_string;
 use greenharvest::tables::{in_ranges, NON_PRINTABLE_RANGES};
 use greenharvest::{
-    build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, remaining_records,
-    report_document, restore_records,
+    build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, read_report,
+    remaining_records, report_document, restore_records, validate_report,
 };
 
-const USAGE_TOP: &str = "usage: greenharvest {plan,restore,ingest} ...";
+const USAGE_TOP: &str = "usage: greenharvest {plan,restore,ingest,validate-report} ...";
 const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
 const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT";
 const USAGE_INGEST: &str = "usage: greenharvest ingest TABLE ... --out OUT";
+const USAGE_VALIDATE_REPORT: &str = "usage: greenharvest validate-report RECORDS REPORT";
 
 /// The code points of the Unicode decimal number category, as
 /// inclusive ranges, generated from the CPython runtime on the
@@ -411,6 +412,22 @@ const RESTORE_SPEC: Spec = Spec {
     positional_count: 2,
     positional_more: false,
     required: &[FlagId::Out],
+};
+
+const VALIDATE_REPORT_SPEC: Spec = Spec {
+    options: &[
+        OptionSpec {
+            text: "-h",
+            flag: FlagId::Help,
+        },
+        OptionSpec {
+            text: "--help",
+            flag: FlagId::Help,
+        },
+    ],
+    positional_count: 2,
+    positional_more: false,
+    required: &[],
 };
 
 const INGEST_SPEC: Spec = Spec {
@@ -816,6 +833,7 @@ enum Door {
     Plan,
     Restore,
     Ingest,
+    ValidateReport,
 }
 
 impl Door {
@@ -824,6 +842,7 @@ impl Door {
             Door::Plan => &PLAN_SPEC,
             Door::Restore => &RESTORE_SPEC,
             Door::Ingest => &INGEST_SPEC,
+            Door::ValidateReport => &VALIDATE_REPORT_SPEC,
         }
     }
 
@@ -832,6 +851,7 @@ impl Door {
             Door::Plan => USAGE_PLAN,
             Door::Restore => USAGE_RESTORE,
             Door::Ingest => USAGE_INGEST,
+            Door::ValidateReport => USAGE_VALIDATE_REPORT,
         }
     }
 }
@@ -864,6 +884,8 @@ fn try_command(words: &[Word], pats: &[Pat], start: usize) -> CommandStep {
         Door::Restore
     } else if first.is_text("ingest") {
         Door::Ingest
+    } else if first.is_text("validate-report") {
+        Door::ValidateReport
     } else {
         return CommandStep::Invalid;
     };
@@ -1019,11 +1041,33 @@ fn ingest_door(parse: DoorParse) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+fn validate_report_door(parse: DoorParse) -> ExitCode {
+    let records_word = parse.positionals[0]
+        .as_ref()
+        .expect("the records positional stands after the parse");
+    let report_word = parse.positionals[1]
+        .as_ref()
+        .expect("the report positional stands after the parse");
+    let record_set = match read_records(&PathBuf::from(&records_word.raw)) {
+        Ok(record_set) => record_set,
+        Err(error) => return fail(error.message()),
+    };
+    let report = match read_report(&PathBuf::from(&report_word.raw)) {
+        Ok(report) => report,
+        Err(error) => return fail(error.message()),
+    };
+    match validate_report(&record_set, &report) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => fail(error.message()),
+    }
+}
+
 fn run(parse: DoorParse, door: Door) -> ExitCode {
     match door {
         Door::Plan => plan_door(parse),
         Door::Restore => restore_door(parse),
         Door::Ingest => ingest_door(parse),
+        Door::ValidateReport => validate_report_door(parse),
     }
 }
 
