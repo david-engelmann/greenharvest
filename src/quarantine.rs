@@ -6,8 +6,10 @@
 //! and returns the suite record exactly as it stood before the
 //! plan.
 
+use crate::bigint::BigInt;
 use crate::errors::GreenharvestError;
 use crate::ingest::{Quarantine, RecordSet};
+use crate::jsonvalue::JsonValue;
 use crate::plan::{Plan, DISPOSITION_QUARANTINE};
 use crate::render::repr_string;
 
@@ -78,4 +80,89 @@ pub fn restore_records(
         suite: remaining.suite.clone(),
         tests: merged,
     })
+}
+
+/// One removal pack's record read in the held form, as the
+/// records reading holds a record, its caught list sorted.
+/// A record standing in a shape that reading refuses cannot
+/// be the record of a plan this tool states, and the caller
+/// reads that standing as a disagreement.
+fn pack_record(record: &JsonValue) -> Option<crate::ingest::TestRecord> {
+    let name = record.get("name")?.as_text()?;
+    if name.is_empty() {
+        return None;
+    }
+    let runtime = match record.get("runtime_ms")? {
+        JsonValue::Int(value) => BigInt::from_i64(*value),
+        JsonValue::BigInt(text) => BigInt::from_decimal(text)?,
+        _ => return None,
+    };
+    if !runtime.is_positive() {
+        return None;
+    }
+    let mut caught: Vec<String> = Vec::new();
+    for defect in record.get("caught")?.as_list()? {
+        let text = defect.as_text()?;
+        if text.is_empty() {
+            return None;
+        }
+        caught.push(text.to_string());
+    }
+    caught.sort();
+    let mut deduped = caught.clone();
+    deduped.dedup();
+    if deduped.len() != caught.len() {
+        return None;
+    }
+    Some(crate::ingest::TestRecord {
+        name: name.to_string(),
+        runtime_ms: runtime,
+        caught,
+    })
+}
+
+/// Validate a quarantine record against the report of its
+/// plan (VQ-2 and VQ-3). The expected quarantine record is
+/// built from the report as read, carrying the suite the
+/// report carries and the full record of every removal pack
+/// whose disposition is quarantine and of no other pack, its
+/// tests standing in the name order the held form stands in.
+/// Every field of the quarantine record as read must equal
+/// it, the comparison standing over the held forms as values,
+/// so the spelling of either file, its key order and its
+/// whitespace, does not stand in the comparison.
+pub fn validate_quarantine(
+    report: &JsonValue,
+    quarantine: &Quarantine,
+) -> Result<(), GreenharvestError> {
+    let disagreement =
+        || GreenharvestError::new("the quarantine record disagrees with the report of its plan");
+    let suite = report
+        .get("suite")
+        .and_then(JsonValue::as_text)
+        .ok_or_else(disagreement)?;
+    let packs = report
+        .get("removal_packs")
+        .and_then(JsonValue::as_list)
+        .ok_or_else(disagreement)?;
+    let mut tests: Vec<crate::ingest::TestRecord> = Vec::new();
+    for pack in packs {
+        let cleared = matches!(
+            pack.get("disposition"),
+            Some(JsonValue::Text(text)) if text == DISPOSITION_QUARANTINE
+        );
+        if cleared {
+            let record = pack.get("record").ok_or_else(disagreement)?;
+            tests.push(pack_record(record).ok_or_else(disagreement)?);
+        }
+    }
+    tests.sort_by(|a, b| a.name.cmp(&b.name));
+    let expected = Quarantine {
+        suite: suite.to_string(),
+        tests,
+    };
+    if expected != *quarantine {
+        return Err(disagreement());
+    }
+    Ok(())
 }

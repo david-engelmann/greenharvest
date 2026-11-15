@@ -26,14 +26,16 @@ use greenharvest::render::repr_string;
 use greenharvest::tables::{in_ranges, NON_PRINTABLE_RANGES};
 use greenharvest::{
     build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, read_report,
-    remaining_records, report_document, restore_records, validate_report,
+    remaining_records, report_document, restore_records, validate_quarantine, validate_report,
 };
 
-const USAGE_TOP: &str = "usage: greenharvest {plan,restore,ingest,validate-report} ...";
+const USAGE_TOP: &str =
+    "usage: greenharvest {plan,restore,ingest,validate-report,validate-quarantine} ...";
 const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
 const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT";
 const USAGE_INGEST: &str = "usage: greenharvest ingest TABLE ... --out OUT";
 const USAGE_VALIDATE_REPORT: &str = "usage: greenharvest validate-report RECORDS REPORT";
+const USAGE_VALIDATE_QUARANTINE: &str = "usage: greenharvest validate-quarantine REPORT QUARANTINE";
 
 /// The code points of the Unicode decimal number category, as
 /// inclusive ranges, generated from the CPython runtime on the
@@ -415,6 +417,22 @@ const RESTORE_SPEC: Spec = Spec {
 };
 
 const VALIDATE_REPORT_SPEC: Spec = Spec {
+    options: &[
+        OptionSpec {
+            text: "-h",
+            flag: FlagId::Help,
+        },
+        OptionSpec {
+            text: "--help",
+            flag: FlagId::Help,
+        },
+    ],
+    positional_count: 2,
+    positional_more: false,
+    required: &[],
+};
+
+const VALIDATE_QUARANTINE_SPEC: Spec = Spec {
     options: &[
         OptionSpec {
             text: "-h",
@@ -834,6 +852,7 @@ enum Door {
     Restore,
     Ingest,
     ValidateReport,
+    ValidateQuarantine,
 }
 
 impl Door {
@@ -843,6 +862,7 @@ impl Door {
             Door::Restore => &RESTORE_SPEC,
             Door::Ingest => &INGEST_SPEC,
             Door::ValidateReport => &VALIDATE_REPORT_SPEC,
+            Door::ValidateQuarantine => &VALIDATE_QUARANTINE_SPEC,
         }
     }
 
@@ -852,6 +872,7 @@ impl Door {
             Door::Restore => USAGE_RESTORE,
             Door::Ingest => USAGE_INGEST,
             Door::ValidateReport => USAGE_VALIDATE_REPORT,
+            Door::ValidateQuarantine => USAGE_VALIDATE_QUARANTINE,
         }
     }
 }
@@ -886,6 +907,8 @@ fn try_command(words: &[Word], pats: &[Pat], start: usize) -> CommandStep {
         Door::Ingest
     } else if first.is_text("validate-report") {
         Door::ValidateReport
+    } else if first.is_text("validate-quarantine") {
+        Door::ValidateQuarantine
     } else {
         return CommandStep::Invalid;
     };
@@ -1062,12 +1085,34 @@ fn validate_report_door(parse: DoorParse) -> ExitCode {
     }
 }
 
+fn validate_quarantine_door(parse: DoorParse) -> ExitCode {
+    let report_word = parse.positionals[0]
+        .as_ref()
+        .expect("the report positional stands after the parse");
+    let quarantine_word = parse.positionals[1]
+        .as_ref()
+        .expect("the quarantine positional stands after the parse");
+    let report = match read_report(&PathBuf::from(&report_word.raw)) {
+        Ok(report) => report,
+        Err(error) => return fail(error.message()),
+    };
+    let quarantine = match read_quarantine(&PathBuf::from(&quarantine_word.raw)) {
+        Ok(quarantine) => quarantine,
+        Err(error) => return fail(error.message()),
+    };
+    match validate_quarantine(&report, &quarantine) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => fail(error.message()),
+    }
+}
+
 fn run(parse: DoorParse, door: Door) -> ExitCode {
     match door {
         Door::Plan => plan_door(parse),
         Door::Restore => restore_door(parse),
         Door::Ingest => ingest_door(parse),
         Door::ValidateReport => validate_report_door(parse),
+        Door::ValidateQuarantine => validate_quarantine_door(parse),
     }
 }
 
