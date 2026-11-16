@@ -28,6 +28,7 @@ pub mod serialize;
 pub mod tables;
 
 pub use budget::parse_budget;
+pub use catchtable::validate_ingest;
 pub use errors::GreenharvestError;
 pub use ingest::{
     read_quarantine, read_quarantine_text, read_records, read_records_text, read_remaining,

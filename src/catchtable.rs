@@ -396,3 +396,17 @@ pub fn read_catch_table(path: &Path) -> Result<CatchTable, GreenharvestError> {
     let text = read_file_text(path, "catch table")?;
     read_catch_table_text(&text)
 }
+
+/// The ingest validation of slice 7. The record set a set of
+/// catch tables transposes to stands compared against a
+/// record set as read, and any difference refuses. The
+/// defects no test caught stand outside the comparison, as
+/// they stand outside the record set itself.
+pub fn validate_ingest(expected: &RecordSet, records: &RecordSet) -> Result<(), GreenharvestError> {
+    if expected != records {
+        return Err(GreenharvestError::new(
+            "the record set disagrees with the catch table it was transposed from",
+        ));
+    }
+    Ok(())
+}
