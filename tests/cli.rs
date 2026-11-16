@@ -32,7 +32,7 @@ fn expected_sections() -> Vec<(&'static str, usize)> {
 }
 
 const USAGE_TOP: &str =
-    "usage: greenharvest {plan,restore,ingest,validate-report,validate-quarantine} ...\n";
+    "usage: greenharvest {plan,restore,ingest,validate-report,validate-quarantine,validate-ingest} ...\n";
 const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR\n";
 const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT\n";
 
