@@ -82,6 +82,26 @@ pub fn restore_records(
     })
 }
 
+/// Validate a restored record set against the remaining
+/// records and the quarantine record it was restored from.
+/// The expected restored set is the standing restore
+/// computation's own output, its refusals standing as this
+/// reading's refusals, and any field of the restored set
+/// differing from it refuses in the disagreement words.
+pub fn validate_restore(
+    remaining: &RecordSet,
+    quarantine: &Quarantine,
+    restored: &RecordSet,
+) -> Result<(), GreenharvestError> {
+    let expected = restore_records(remaining, quarantine)?;
+    if expected != *restored {
+        return Err(GreenharvestError::new(
+            "the restored record set disagrees with the remaining records and the quarantine record",
+        ));
+    }
+    Ok(())
+}
+
 /// One removal pack's record read in the held form, as the
 /// records reading holds a record, its caught list sorted.
 /// A record standing in a shape that reading refuses cannot
