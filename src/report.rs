@@ -10,7 +10,9 @@ use std::path::Path;
 
 use crate::bigint::BigInt;
 use crate::errors::GreenharvestError;
-use crate::ingest::{bigint_json, read_file_text, record_document, RecordSet};
+use crate::ingest::{
+    bigint_json, read_file_text, record_document, translate_line_endings, RecordSet,
+};
 use crate::jsonvalue::{parse_json, JsonValue, ParseFailure};
 use crate::plan::{build_plan, Plan, DISPOSITION_BLOCKED, DISPOSITION_QUARANTINE};
 use crate::quarantine::remaining_records;
@@ -582,15 +584,17 @@ fn markdown_kinds_stand(report: &JsonValue) -> bool {
 /// rendered from (MD-3). The expected rendering is built
 /// from the report as read by the same rendering the plan
 /// door writes, and the markdown as read must equal it
-/// whole, every character standing in the comparison,
-/// because a rendering carries one canonical spelling. A
+/// whole under the translation the standing text reading
+/// applies, every other character standing in the
+/// comparison, because a rendering carries one canonical
+/// spelling. A
 /// markdown any character of which differs refuses in the
 /// disagreement words, and a report one of whose fields
 /// stands in a kind the rendering does not read refuses
 /// the same way, the rendering never standing to be built
 /// from it.
 pub fn validate_markdown(report: &JsonValue, markdown: &str) -> Result<(), GreenharvestError> {
-    if !markdown_kinds_stand(report) || markdown_text(report) != markdown {
+    if !markdown_kinds_stand(report) || translate_line_endings(&markdown_text(report)) != markdown {
         return Err(GreenharvestError::new(
             "the markdown disagrees with the report it was rendered from",
         ));

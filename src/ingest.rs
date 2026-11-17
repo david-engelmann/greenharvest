@@ -264,6 +264,14 @@ pub fn read_quarantine_text(text: &str) -> Result<Quarantine, GreenharvestError>
     Ok(Quarantine { suite, tests })
 }
 
+/// Translate a text's line endings to the line feed character,
+/// the translation the standing text reading applies to every
+/// document it reads. It stands named once so that a reading
+/// and a comparison against a reading apply the same rule.
+pub fn translate_line_endings(text: &str) -> String {
+    text.replace("\r\n", "\n").replace('\r', "\n")
+}
+
 /// Read a file as UTF-8 text with its line endings translated to
 /// the line feed character, as the Python file reading delivers
 /// it. The label names the document in the refusals and the path
@@ -291,7 +299,7 @@ pub fn read_file_text(path: &Path, what: &str) -> Result<String, GreenharvestErr
             )));
         }
     };
-    Ok(text.replace("\r\n", "\n").replace('\r', "\n"))
+    Ok(translate_line_endings(&text))
 }
 
 /// Read a records document from a local file.

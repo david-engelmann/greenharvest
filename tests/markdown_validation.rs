@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use greenharvest::bigint::BigInt;
-use greenharvest::ingest::{read_records_text, RecordSet};
+use greenharvest::ingest::{read_records_text, translate_line_endings, RecordSet};
 use greenharvest::jsonvalue::JsonValue;
 use greenharvest::report::{markdown_text, read_report_text, report_document, validate_markdown};
 use greenharvest::{build_plan, canonical_text};
@@ -256,4 +256,37 @@ fn test_the_markdown_of_a_plan_with_no_removals_validates() {
         "the rendering states that no removal is proposed: {markdown}"
     );
     validate_markdown(&report, &markdown).expect("the markdown of an empty plan validates");
+}
+
+/// The records of the genuine pins with the suite name
+/// carrying a carriage return, which the records reading
+/// accepts as it accepts any nonempty name.
+const RECORDS_CR: &str = r#"{
+  "format": "suitediet-records/1",
+  "suite": "markdown\rvalidation suite",
+  "tests": [
+    {"name": "alpha", "runtime_ms": 100, "caught": ["d1"]},
+    {"name": "beta", "runtime_ms": 50, "caught": ["d2"]},
+    {"name": "gamma", "runtime_ms": 10, "caught": ["d2"]},
+    {"name": "delta", "runtime_ms": 500, "caught": []}
+  ]
+}"#;
+
+#[test]
+fn test_a_report_whose_name_carries_a_carriage_return_validates() {
+    // The plan door writes the rendering with the carriage
+    // return standing in the suite name, and the standing
+    // text reading translates it on the way back in, so the
+    // validation compares the rendering as read and the
+    // genuine pair validates.
+    let records = read_records_text(RECORDS_CR).expect("the records read");
+    let plan = build_plan(&records, &BigInt::from_i64(60)).expect("the plan builds");
+    let report = report_document(&plan);
+    let rendered = markdown_text(&report);
+    assert!(
+        rendered.contains('\r'),
+        "the carriage return stands in the rendering"
+    );
+    let read_back = translate_line_endings(&rendered);
+    validate_markdown(&report, &read_back).expect("the read back rendering validates");
 }
