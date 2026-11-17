@@ -41,4 +41,7 @@ pub use quarantine::{
 };
 pub use ranking::{derive_catchers, rank_tests, RankedTest};
 pub use render::canonical_text;
-pub use report::{markdown_text, read_report, read_report_text, report_document, validate_report};
+pub use report::{
+    markdown_text, read_report, read_report_text, report_document, validate_remaining,
+    validate_report,
+};

@@ -13,6 +13,7 @@ use crate::errors::GreenharvestError;
 use crate::ingest::{bigint_json, read_file_text, record_document, RecordSet};
 use crate::jsonvalue::{parse_json, JsonValue, ParseFailure};
 use crate::plan::{build_plan, Plan, DISPOSITION_BLOCKED, DISPOSITION_QUARANTINE};
+use crate::quarantine::remaining_records;
 use crate::ranking::render_value;
 use crate::render::{canonical_text, repr_string, repr_value};
 
@@ -484,6 +485,32 @@ pub fn validate_report(
     if canonical_text(&rebuilt) != canonical_text(report) {
         return Err(GreenharvestError::new(
             "the report disagrees with the records it was planned from",
+        ));
+    }
+    Ok(())
+}
+
+/// Validate a remaining record set against the records and
+/// the report of the plan it was planned from (VM-2 and
+/// VM-3). The plan is rebuilt from the records under the
+/// budget the report carries, by the same building the plan
+/// door performs, and the remaining record set of that plan,
+/// built by the standing remaining computation, must equal
+/// the remaining set as read in every field, the suite and
+/// the tests in their order and every record the tests
+/// carry. A remaining set any field of which differs refuses
+/// in the disagreement words.
+pub fn validate_remaining(
+    record_set: &RecordSet,
+    report: &JsonValue,
+    remaining: &RecordSet,
+) -> Result<(), GreenharvestError> {
+    let budget = report_budget(report)?;
+    let plan = build_plan(record_set, &budget)?;
+    let expected = remaining_records(record_set, &plan);
+    if expected != *remaining {
+        return Err(GreenharvestError::new(
+            "the remaining record set disagrees with the records and the report it was planned from",
         ));
     }
     Ok(())
