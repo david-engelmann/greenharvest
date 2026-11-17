@@ -63,7 +63,7 @@ fn test_a_tests_fault_speaks_ahead_of_a_row_fault() {
         r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
             "tests": [{"name": "alpha", "runtime_ms": 100},
                       {"name": "alpha", "runtime_ms": 90}],
-            "catches": [{"defect": "d1", "caught_by": ["ghost"]}]}"#,
+            "catches": [{"defect": "d1", "caught_by": ["alpha", "alpha"]}]}"#,
     );
     assert_eq!(message, "the catch table lists the test name alpha twice");
 }
@@ -221,5 +221,30 @@ fn test_a_runtime_disagreement_speaks_ahead_of_an_unknown_catcher() {
     assert_eq!(
         message,
         "the test alpha stands at two runtimes across the catch tables, 100 and 90"
+    );
+}
+#[test]
+fn test_a_doubled_catcher_speaks_ahead_of_a_non_text_catcher_in_its_row() {
+    let message = refusal(
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d1", "caught_by": ["alpha", "alpha", null]}]}"#,
+    );
+    assert_eq!(
+        message,
+        "the defect d1 names the test alpha more than once as a catcher"
+    );
+}
+
+#[test]
+fn test_a_non_text_catcher_speaks_ahead_of_a_doubled_catcher_in_its_row() {
+    let message = refusal(
+        r#"{"format": "greenharvest-catch-table/1", "suite": "probe",
+            "tests": [{"name": "alpha", "runtime_ms": 100}],
+            "catches": [{"defect": "d1", "caught_by": [null, "alpha", "alpha"]}]}"#,
+    );
+    assert_eq!(
+        message,
+        "the defect d1 names an empty or non text test as a catcher"
     );
 }
