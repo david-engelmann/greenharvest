@@ -25,13 +25,13 @@ use greenharvest::pytext::bytes_text;
 use greenharvest::render::repr_string;
 use greenharvest::tables::{in_ranges, NON_PRINTABLE_RANGES};
 use greenharvest::{
-    build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, read_report,
-    remaining_records, report_document, restore_records, validate_quarantine, validate_remaining,
-    validate_report, validate_restore,
+    build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, read_markdown,
+    read_report, remaining_records, report_document, restore_records, validate_markdown,
+    validate_quarantine, validate_remaining, validate_report, validate_restore,
 };
 
 const USAGE_TOP: &str =
-    "usage: greenharvest {plan,restore,ingest,validate-report,validate-quarantine,validate-ingest,validate-restore,validate-remaining} ...";
+    "usage: greenharvest {plan,restore,ingest,validate-report,validate-quarantine,validate-ingest,validate-restore,validate-remaining,validate-markdown} ...";
 const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
 const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT";
 const USAGE_INGEST: &str = "usage: greenharvest ingest TABLE ... --out OUT";
@@ -42,6 +42,7 @@ const USAGE_VALIDATE_RESTORE: &str =
     "usage: greenharvest validate-restore REMAINING QUARANTINE RESTORED";
 const USAGE_VALIDATE_REMAINING: &str =
     "usage: greenharvest validate-remaining RECORDS REPORT REMAINING";
+const USAGE_VALIDATE_MARKDOWN: &str = "usage: greenharvest validate-markdown REPORT MARKDOWN";
 
 /// The code points of the Unicode decimal number category, as
 /// inclusive ranges, generated from the CPython runtime on the
@@ -486,6 +487,22 @@ const VALIDATE_REMAINING_SPEC: Spec = Spec {
     required: &[],
 };
 
+const VALIDATE_MARKDOWN_SPEC: Spec = Spec {
+    options: &[
+        OptionSpec {
+            text: "-h",
+            flag: FlagId::Help,
+        },
+        OptionSpec {
+            text: "--help",
+            flag: FlagId::Help,
+        },
+    ],
+    positional_count: 2,
+    positional_more: false,
+    required: &[],
+};
+
 const VALIDATE_INGEST_SPEC: Spec = Spec {
     options: &[
         OptionSpec {
@@ -910,6 +927,7 @@ enum Door {
     ValidateIngest,
     ValidateRestore,
     ValidateRemaining,
+    ValidateMarkdown,
 }
 
 impl Door {
@@ -923,6 +941,7 @@ impl Door {
             Door::ValidateIngest => &VALIDATE_INGEST_SPEC,
             Door::ValidateRestore => &VALIDATE_RESTORE_SPEC,
             Door::ValidateRemaining => &VALIDATE_REMAINING_SPEC,
+            Door::ValidateMarkdown => &VALIDATE_MARKDOWN_SPEC,
         }
     }
 
@@ -936,6 +955,7 @@ impl Door {
             Door::ValidateIngest => USAGE_VALIDATE_INGEST,
             Door::ValidateRestore => USAGE_VALIDATE_RESTORE,
             Door::ValidateRemaining => USAGE_VALIDATE_REMAINING,
+            Door::ValidateMarkdown => USAGE_VALIDATE_MARKDOWN,
         }
     }
 }
@@ -978,6 +998,8 @@ fn try_command(words: &[Word], pats: &[Pat], start: usize) -> CommandStep {
         Door::ValidateRestore
     } else if first.is_text("validate-remaining") {
         Door::ValidateRemaining
+    } else if first.is_text("validate-markdown") {
+        Door::ValidateMarkdown
     } else {
         return CommandStep::Invalid;
     };
@@ -1261,6 +1283,27 @@ fn validate_remaining_door(parse: DoorParse) -> ExitCode {
     }
 }
 
+fn validate_markdown_door(parse: DoorParse) -> ExitCode {
+    let report_word = parse.positionals[0]
+        .as_ref()
+        .expect("the report positional stands after the parse");
+    let markdown_word = parse.positionals[1]
+        .as_ref()
+        .expect("the markdown positional stands after the parse");
+    let report = match read_report(&PathBuf::from(&report_word.raw)) {
+        Ok(report) => report,
+        Err(error) => return fail(error.message()),
+    };
+    let markdown = match read_markdown(&PathBuf::from(&markdown_word.raw)) {
+        Ok(markdown) => markdown,
+        Err(error) => return fail(error.message()),
+    };
+    match validate_markdown(&report, &markdown) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => fail(error.message()),
+    }
+}
+
 fn run(parse: DoorParse, door: Door) -> ExitCode {
     match door {
         Door::Plan => plan_door(parse),
@@ -1271,6 +1314,7 @@ fn run(parse: DoorParse, door: Door) -> ExitCode {
         Door::ValidateIngest => validate_ingest_door(parse),
         Door::ValidateRestore => validate_restore_door(parse),
         Door::ValidateRemaining => validate_remaining_door(parse),
+        Door::ValidateMarkdown => validate_markdown_door(parse),
     }
 }
 

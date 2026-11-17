@@ -490,6 +490,114 @@ pub fn validate_report(
     Ok(())
 }
 
+/// Read a markdown rendering from a local file, as the text
+/// the standing file reading reads it, its line endings
+/// translated as that reading translates them.
+pub fn read_markdown(path: &Path) -> Result<String, GreenharvestError> {
+    read_file_text(path, "markdown")
+}
+
+/// Whether a value stands as an integer in either of its
+/// stored forms, the kind the rendering reads a count in.
+fn stands_as_int(value: Option<&JsonValue>) -> bool {
+    matches!(value, Some(JsonValue::Int(_)) | Some(JsonValue::BigInt(_)))
+}
+
+/// Whether a value stands as a text, the kind the rendering
+/// reads a name or a rendered figure in.
+fn stands_as_text(value: Option<&JsonValue>) -> bool {
+    matches!(value, Some(JsonValue::Text(_)))
+}
+
+/// Whether a value stands as a list of texts, the kind the
+/// rendering reads a defect list in.
+fn stands_as_texts(value: Option<&JsonValue>) -> bool {
+    match value {
+        Some(JsonValue::List(items)) => items.iter().all(|item| matches!(item, JsonValue::Text(_))),
+        _ => false,
+    }
+}
+
+/// Whether the report as read carries every field in the
+/// kind the markdown rendering reads it in (MD-2). The
+/// report reading settles which fields stand, and this
+/// settling settles the kinds they stand in, so the
+/// rendering the validation compares against is never built
+/// from a report it could not have been made from.
+fn markdown_kinds_stand(report: &JsonValue) -> bool {
+    if !stands_as_text(report.get("suite"))
+        || !stands_as_int(report.get("budget_ms"))
+        || !stands_as_int(report.get("survivor_runtime_ms"))
+    {
+        return false;
+    }
+    let ranking = match report.get("ranking") {
+        Some(JsonValue::List(rows)) => rows,
+        _ => return false,
+    };
+    for row in ranking {
+        if !stands_as_int(row.get("rank"))
+            || !stands_as_text(row.get("name"))
+            || !stands_as_int(row.get("runtime_ms"))
+            || !stands_as_text(row.get("weighted_catches"))
+            || !stands_as_text(row.get("value"))
+            || !stands_as_int(row.get("catches"))
+            || !stands_as_int(row.get("unique_catches"))
+        {
+            return false;
+        }
+    }
+    let packs = match report.get("removal_packs") {
+        Some(JsonValue::List(packs)) => packs,
+        _ => return false,
+    };
+    for pack in packs {
+        if !stands_as_text(pack.get("name"))
+            || !stands_as_text(pack.get("disposition"))
+            || !stands_as_texts(pack.get("blocking_defects"))
+        {
+            return false;
+        }
+        match pack.get("overlap") {
+            Some(JsonValue::Object(entries)) => {
+                for (_, names) in entries {
+                    if !stands_as_texts(Some(names)) {
+                        return false;
+                    }
+                }
+            }
+            _ => return false,
+        }
+    }
+    let totals = match report.get("totals") {
+        Some(totals) => totals,
+        None => return false,
+    };
+    stands_as_int(totals.get("defects_before"))
+        && stands_as_int(totals.get("defects_after"))
+        && stands_as_texts(totals.get("lost_defects"))
+}
+
+/// Validate a markdown rendering against the report it was
+/// rendered from (MD-3). The expected rendering is built
+/// from the report as read by the same rendering the plan
+/// door writes, and the markdown as read must equal it
+/// whole, every character standing in the comparison,
+/// because a rendering carries one canonical spelling. A
+/// markdown any character of which differs refuses in the
+/// disagreement words, and a report one of whose fields
+/// stands in a kind the rendering does not read refuses
+/// the same way, the rendering never standing to be built
+/// from it.
+pub fn validate_markdown(report: &JsonValue, markdown: &str) -> Result<(), GreenharvestError> {
+    if !markdown_kinds_stand(report) || markdown_text(report) != markdown {
+        return Err(GreenharvestError::new(
+            "the markdown disagrees with the report it was rendered from",
+        ));
+    }
+    Ok(())
+}
+
 /// Validate a remaining record set against the records and
 /// the report of the plan it was planned from (VM-2 and
 /// VM-3). The plan is rebuilt from the records under the
