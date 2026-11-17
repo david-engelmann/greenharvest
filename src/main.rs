@@ -26,12 +26,12 @@ use greenharvest::render::repr_string;
 use greenharvest::tables::{in_ranges, NON_PRINTABLE_RANGES};
 use greenharvest::{
     build_plan, build_quarantine, canonical_text, markdown_text, parse_budget, read_report,
-    remaining_records, report_document, restore_records, validate_quarantine, validate_report,
-    validate_restore,
+    remaining_records, report_document, restore_records, validate_quarantine, validate_remaining,
+    validate_report, validate_restore,
 };
 
 const USAGE_TOP: &str =
-    "usage: greenharvest {plan,restore,ingest,validate-report,validate-quarantine,validate-ingest,validate-restore} ...";
+    "usage: greenharvest {plan,restore,ingest,validate-report,validate-quarantine,validate-ingest,validate-restore,validate-remaining} ...";
 const USAGE_PLAN: &str = "usage: greenharvest plan RECORDS --budget-ms BUDGET --out-dir OUT_DIR";
 const USAGE_RESTORE: &str = "usage: greenharvest restore REMAINING QUARANTINE --out OUT";
 const USAGE_INGEST: &str = "usage: greenharvest ingest TABLE ... --out OUT";
@@ -40,6 +40,8 @@ const USAGE_VALIDATE_QUARANTINE: &str = "usage: greenharvest validate-quarantine
 const USAGE_VALIDATE_INGEST: &str = "usage: greenharvest validate-ingest TABLE ... RECORDS";
 const USAGE_VALIDATE_RESTORE: &str =
     "usage: greenharvest validate-restore REMAINING QUARANTINE RESTORED";
+const USAGE_VALIDATE_REMAINING: &str =
+    "usage: greenharvest validate-remaining RECORDS REPORT REMAINING";
 
 /// The code points of the Unicode decimal number category, as
 /// inclusive ranges, generated from the CPython runtime on the
@@ -453,6 +455,22 @@ const VALIDATE_QUARANTINE_SPEC: Spec = Spec {
 };
 
 const VALIDATE_RESTORE_SPEC: Spec = Spec {
+    options: &[
+        OptionSpec {
+            text: "-h",
+            flag: FlagId::Help,
+        },
+        OptionSpec {
+            text: "--help",
+            flag: FlagId::Help,
+        },
+    ],
+    positional_count: 3,
+    positional_more: false,
+    required: &[],
+};
+
+const VALIDATE_REMAINING_SPEC: Spec = Spec {
     options: &[
         OptionSpec {
             text: "-h",
@@ -891,6 +909,7 @@ enum Door {
     ValidateQuarantine,
     ValidateIngest,
     ValidateRestore,
+    ValidateRemaining,
 }
 
 impl Door {
@@ -903,6 +922,7 @@ impl Door {
             Door::ValidateQuarantine => &VALIDATE_QUARANTINE_SPEC,
             Door::ValidateIngest => &VALIDATE_INGEST_SPEC,
             Door::ValidateRestore => &VALIDATE_RESTORE_SPEC,
+            Door::ValidateRemaining => &VALIDATE_REMAINING_SPEC,
         }
     }
 
@@ -915,6 +935,7 @@ impl Door {
             Door::ValidateQuarantine => USAGE_VALIDATE_QUARANTINE,
             Door::ValidateIngest => USAGE_VALIDATE_INGEST,
             Door::ValidateRestore => USAGE_VALIDATE_RESTORE,
+            Door::ValidateRemaining => USAGE_VALIDATE_REMAINING,
         }
     }
 }
@@ -955,6 +976,8 @@ fn try_command(words: &[Word], pats: &[Pat], start: usize) -> CommandStep {
         Door::ValidateIngest
     } else if first.is_text("validate-restore") {
         Door::ValidateRestore
+    } else if first.is_text("validate-remaining") {
+        Door::ValidateRemaining
     } else {
         return CommandStep::Invalid;
     };
@@ -1210,6 +1233,34 @@ fn validate_restore_door(parse: DoorParse) -> ExitCode {
     }
 }
 
+fn validate_remaining_door(parse: DoorParse) -> ExitCode {
+    let records_word = parse.positionals[0]
+        .as_ref()
+        .expect("the records positional stands after the parse");
+    let report_word = parse.positionals[1]
+        .as_ref()
+        .expect("the report positional stands after the parse");
+    let remaining_word = parse.positionals[2]
+        .as_ref()
+        .expect("the remaining positional stands after the parse");
+    let record_set = match read_records(&PathBuf::from(&records_word.raw)) {
+        Ok(record_set) => record_set,
+        Err(error) => return fail(error.message()),
+    };
+    let report = match read_report(&PathBuf::from(&report_word.raw)) {
+        Ok(report) => report,
+        Err(error) => return fail(error.message()),
+    };
+    let remaining = match read_remaining(&PathBuf::from(&remaining_word.raw)) {
+        Ok(remaining) => remaining,
+        Err(error) => return fail(error.message()),
+    };
+    match validate_remaining(&record_set, &report, &remaining) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => fail(error.message()),
+    }
+}
+
 fn run(parse: DoorParse, door: Door) -> ExitCode {
     match door {
         Door::Plan => plan_door(parse),
@@ -1219,6 +1270,7 @@ fn run(parse: DoorParse, door: Door) -> ExitCode {
         Door::ValidateQuarantine => validate_quarantine_door(parse),
         Door::ValidateIngest => validate_ingest_door(parse),
         Door::ValidateRestore => validate_restore_door(parse),
+        Door::ValidateRemaining => validate_remaining_door(parse),
     }
 }
 
