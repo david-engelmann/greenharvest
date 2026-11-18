@@ -21,7 +21,7 @@ fn test_seed_files_present() {
     assert!(readme.contains("# greenharvest"));
     assert!(readme.contains("Suite dieting with a safety proof"));
     assert!(readme.contains("## Licence"));
-    assert!(readme.contains("Closed rounds stand at 12 of 100"));
+    assert!(readme.contains("Closed rounds stand at 13 of 100"));
     assert!(licence.contains("MIT License"));
     assert!(gitignore.contains("__pycache__/"));
     assert!(gitignore.contains(".env"));
