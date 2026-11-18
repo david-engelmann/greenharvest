@@ -173,13 +173,28 @@ fn field_texts<'a>(document: &'a JsonValue, field: &str) -> Vec<&'a str> {
 
 /// The markdown rendering of a report document, in the words the
 /// Python rendering uses.
+/// A name as the markdown prose carries it, a line
+/// feed standing in the name written as a space so
+/// the sentence or bullet carrying it stands on one
+/// line (MD-3).
+fn markdown_prose(text: &str) -> String {
+    text.replace('\n', " ")
+}
+
+/// A name as a ranking cell carries it, the prose
+/// form with a pipe escaped so the row keeps the
+/// table's columns (MD-2).
+fn markdown_cell(text: &str) -> String {
+    markdown_prose(text).replace('|', "\\|")
+}
+
 pub fn markdown_text(report: &JsonValue) -> String {
     let mut lines: Vec<String> = Vec::new();
     lines.push("# suitediet diet report".to_string());
     lines.push(String::new());
     lines.push(format!(
         "The suite {} under a budget of {} milliseconds. The survivors stand at {} milliseconds of runtime.",
-        field_text(report, "suite"),
+        markdown_prose(&field_text(report, "suite")),
         field_int(report, "budget_ms"),
         field_int(report, "survivor_runtime_ms"),
     ));
@@ -196,7 +211,7 @@ pub fn markdown_text(report: &JsonValue) -> String {
             lines.push(format!(
                 "| {} | {} | {} | {} | {} | {} | {} |",
                 field_int(row, "rank"),
-                field_text(row, "name"),
+                markdown_cell(&field_text(row, "name")),
                 field_int(row, "runtime_ms"),
                 field_text(row, "weighted_catches"),
                 field_text(row, "value"),
@@ -219,11 +234,18 @@ pub fn markdown_text(report: &JsonValue) -> String {
         let mut line = if field_text(pack, "disposition") == DISPOSITION_BLOCKED {
             format!(
                 "- {} is held in the suite. Its removal would lose {}.",
-                field_text(pack, "name"),
-                field_texts(pack, "blocking_defects").join(" and "),
+                markdown_prose(&field_text(pack, "name")),
+                field_texts(pack, "blocking_defects")
+                    .iter()
+                    .map(|defect| markdown_prose(defect))
+                    .collect::<Vec<_>>()
+                    .join(" and "),
             )
         } else {
-            format!("- {} is proposed for quarantine.", field_text(pack, "name"))
+            format!(
+                "- {} is proposed for quarantine.",
+                markdown_prose(&field_text(pack, "name"))
+            )
         };
         let overlap = pack
             .get("overlap")
@@ -237,6 +259,7 @@ pub fn markdown_text(report: &JsonValue) -> String {
                 .iter()
                 .map(|item| item.as_text().expect("the names stand as text"))
                 .collect();
+            let defect = markdown_prose(defect);
             if names.is_empty() {
                 sentences.push(format!(
                     "{defect} is also caught by no other test still standing"
@@ -244,7 +267,11 @@ pub fn markdown_text(report: &JsonValue) -> String {
             } else {
                 sentences.push(format!(
                     "{defect} is also caught by {}",
-                    names.join(" and ")
+                    names
+                        .iter()
+                        .map(|name| markdown_prose(name))
+                        .collect::<Vec<_>>()
+                        .join(" and ")
                 ));
             }
         }
@@ -269,7 +296,13 @@ pub fn markdown_text(report: &JsonValue) -> String {
     if lost.is_empty() {
         lines.push("The plan loses no defect.".to_string());
     } else {
-        lines.push(format!("The plan loses {}.", lost.join(" and ")));
+        lines.push(format!(
+            "The plan loses {}.",
+            lost.iter()
+                .map(|defect| markdown_prose(defect))
+                .collect::<Vec<_>>()
+                .join(" and ")
+        ));
     }
     lines.push(String::new());
     lines.join("\n")
