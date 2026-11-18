@@ -9,9 +9,7 @@
 //! link spelling raw, and two stand on both heads at
 //! the lines ML-2 and ML-3 draw.
 
-use greenharvest::{
-    build_plan, markdown_text, parse_budget, read_records_text, report_document,
-};
+use greenharvest::{build_plan, markdown_text, parse_budget, read_records_text, report_document};
 
 fn rendered(records: &str) -> String {
     let set = read_records_text(records).expect("the records read");
