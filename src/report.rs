@@ -176,9 +176,16 @@ fn field_texts<'a>(document: &'a JsonValue, field: &str) -> Vec<&'a str> {
 /// A name as the markdown prose carries it, a line
 /// feed standing in the name written as a space so
 /// the sentence or bullet carrying it stands on one
-/// line (MD-3).
+/// line (MD-3), and an asterisk and a backtick and a
+/// less than sign escaped after the backslash
+/// doubling so the name reads as itself where the
+/// markdown is rendered (MK-2).
 fn markdown_prose(text: &str) -> String {
-    text.replace('\\', "\\\\").replace('\n', " ")
+    text.replace('\\', "\\\\")
+        .replace('*', "\\*")
+        .replace('`', "\\`")
+        .replace('<', "\\<")
+        .replace('\n', " ")
 }
 
 /// A name as a ranking cell carries it, the prose
