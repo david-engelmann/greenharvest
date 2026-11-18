@@ -4,7 +4,7 @@
 //! name it names and asserts the markdown the plan
 //! writes, the ranking row keeping the table's columns
 //! and every sentence and bullet standing on one line.
-//! Six pins fail on the head this slice branches from,
+//! Seven pins fail on the head this slice branches from,
 //! where the rendering writes every name exactly as it
 //! stands, and three stand on both heads at the lines
 //! MN-3 and MN-4 draw.
@@ -122,6 +122,23 @@ fn test_a_line_break_in_a_defect_name_stands_as_a_space() {
     assert!(
         md.contains("d 1 is also caught by alpha"),
         "the overlap sentence stands on one line: {md}"
+    );
+}
+
+#[test]
+fn test_a_backslash_before_a_pipe_in_a_ranking_name_reads_as_itself() {
+    // The name carries its own backslash before its pipe.
+    // The cell writes the backslash doubled and the pipe
+    // escaped after it, so the rendered name reads with
+    // its backslash and its pipe standing.
+    let md = rendered(&records_with_name("\"test_a\\\\|b\""));
+    let row = md
+        .lines()
+        .find(|line| line.contains("test_a"))
+        .expect("the row stands");
+    assert!(
+        row.contains("| test_a\\\\\\|b |"),
+        "the cell carries the doubled backslash and the escaped pipe: {row}"
     );
 }
 

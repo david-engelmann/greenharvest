@@ -178,7 +178,7 @@ fn field_texts<'a>(document: &'a JsonValue, field: &str) -> Vec<&'a str> {
 /// the sentence or bullet carrying it stands on one
 /// line (MD-3).
 fn markdown_prose(text: &str) -> String {
-    text.replace('\n', " ")
+    text.replace('\\', "\\\\").replace('\n', " ")
 }
 
 /// A name as a ranking cell carries it, the prose
