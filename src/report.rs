@@ -179,13 +179,66 @@ fn field_texts<'a>(document: &'a JsonValue, field: &str) -> Vec<&'a str> {
 /// line (MD-3), and an asterisk and a backtick and a
 /// less than sign escaped after the backslash
 /// doubling so the name reads as itself where the
-/// markdown is rendered (MK-2).
+/// markdown is rendered (MK-2), and the underscores
+/// at the name's own edges escaped and the opening
+/// bracket of a whole link spelling the name carries
+/// escaped, after those (ML-2 and ML-3).
 fn markdown_prose(text: &str) -> String {
-    text.replace('\\', "\\\\")
+    let escaped = text
+        .replace('\\', "\\\\")
         .replace('*', "\\*")
         .replace('`', "\\`")
         .replace('<', "\\<")
-        .replace('\n', " ")
+        .replace('\n', " ");
+    escape_link_openings(&escape_edge_underscores(&escaped))
+}
+
+/// The underscores standing in the run a name begins
+/// with and the run it ends with, each written with a
+/// backslash before it, so an edged name reads as
+/// itself where the markdown is rendered (ML-2). An
+/// underscore standing inside the name stands as it
+/// stands.
+fn escape_edge_underscores(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let lead = chars.iter().take_while(|c| **c == '_').count();
+    let trail = if lead == chars.len() {
+        0
+    } else {
+        chars.iter().rev().take_while(|c| **c == '_').count()
+    };
+    let mut out = String::with_capacity(text.len() + 4);
+    for (index, c) in chars.iter().enumerate() {
+        if *c == '_' && (index < lead || index >= chars.len() - trail) {
+            out.push('\\');
+        }
+        out.push(*c);
+    }
+    out
+}
+
+/// The opening bracket of a whole link spelling, an
+/// opening bracket and its closing bracket and an
+/// opening parenthesis standing immediately after,
+/// written with a backslash before it, so the
+/// spelling reads as the characters it stands as
+/// (ML-3). A bracket standing without the whole
+/// spelling stands as it stands.
+fn escape_link_openings(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = String::with_capacity(text.len() + 4);
+    for (index, c) in chars.iter().enumerate() {
+        if *c == '[' {
+            let close = (index + 1..chars.len()).find(|&at| chars[at] == ']');
+            if let Some(at) = close {
+                if chars.get(at + 1) == Some(&'(') {
+                    out.push('\\');
+                }
+            }
+        }
+        out.push(*c);
+    }
+    out
 }
 
 /// A name as a ranking cell carries it, the prose
