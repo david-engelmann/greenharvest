@@ -145,8 +145,7 @@ fn test_an_underscore_inside_a_word_stands_as_itself_in_its_cell() {
 
 #[test]
 fn test_the_markdown_of_markup_names_validates() {
-    let set = read_records_text(&records_with_name("\"test_a*b<c\""))
-        .expect("the records read");
+    let set = read_records_text(&records_with_name("\"test_a*b<c\"")).expect("the records read");
     let plan = build_plan(&set, &parse_budget("100000").expect("the budget parses"))
         .expect("the plan builds");
     let report = report_document(&plan);
