@@ -180,9 +180,9 @@ fn field_texts<'a>(document: &'a JsonValue, field: &str) -> Vec<&'a str> {
 /// less than sign escaped after the backslash
 /// doubling so the name reads as itself where the
 /// markdown is rendered (MK-2), and the underscores
-/// at the name's own edges escaped and the opening
+/// standing at a word's edge escaped and the opening
 /// bracket of a whole link spelling the name carries
-/// escaped, after those (ML-2 and ML-3).
+/// escaped, after those (MM-2 and ML-3).
 fn markdown_prose(text: &str) -> String {
     let escaped = text
         .replace('\\', "\\\\")
@@ -190,29 +190,44 @@ fn markdown_prose(text: &str) -> String {
         .replace('`', "\\`")
         .replace('<', "\\<")
         .replace('\n', " ");
-    escape_link_openings(&escape_edge_underscores(&escaped))
+    escape_link_openings(&escape_word_edge_underscores(&escaped))
 }
 
-/// The underscores standing in the run a name begins
-/// with and the run it ends with, each written with a
-/// backslash before it, so an edged name reads as
-/// itself where the markdown is rendered (ML-2). An
-/// underscore standing inside the name stands as it
-/// stands.
-fn escape_edge_underscores(text: &str) -> String {
+/// The underscores standing at a word's edge, each
+/// written with a backslash before it, so the name
+/// reads as itself where the markdown is rendered
+/// (MM-2). A run of underscores stands at a word's
+/// edge where the character before the run is not a
+/// letter or a digit or the run opens the name, or
+/// where the character after the run is not a letter
+/// or a digit or the run closes the name, the runs at
+/// the name's own edges among them (ML-2). A run with
+/// a letter or a digit on both sides stands inside a
+/// word and stands as it stands.
+fn escape_word_edge_underscores(text: &str) -> String {
     let chars: Vec<char> = text.chars().collect();
-    let lead = chars.iter().take_while(|c| **c == '_').count();
-    let trail = if lead == chars.len() {
-        0
-    } else {
-        chars.iter().rev().take_while(|c| **c == '_').count()
-    };
     let mut out = String::with_capacity(text.len() + 4);
-    for (index, c) in chars.iter().enumerate() {
-        if *c == '_' && (index < lead || index >= chars.len() - trail) {
-            out.push('\\');
+    let mut index = 0;
+    while index < chars.len() {
+        if chars[index] != '_' {
+            out.push(chars[index]);
+            index += 1;
+            continue;
         }
-        out.push(*c);
+        let start = index;
+        while index < chars.len() && chars[index] == '_' {
+            index += 1;
+        }
+        let at_edge = start == 0
+            || !chars[start - 1].is_alphanumeric()
+            || index == chars.len()
+            || !chars[index].is_alphanumeric();
+        for c in &chars[start..index] {
+            if at_edge {
+                out.push('\\');
+            }
+            out.push(*c);
+        }
     }
     out
 }
