@@ -176,19 +176,23 @@ fn field_texts<'a>(document: &'a JsonValue, field: &str) -> Vec<&'a str> {
 /// A name as the markdown prose carries it, a line
 /// feed standing in the name written as a space so
 /// the sentence or bullet carrying it stands on one
-/// line (MD-3), and an asterisk and a backtick and a
-/// less than sign escaped after the backslash
-/// doubling so the name reads as itself where the
-/// markdown is rendered (MK-2), and the underscores
+/// line (MD-3), and an asterisk and a backtick escaped
+/// after the backslash doubling so the name reads as
+/// itself where the markdown is rendered (MK-2), and
+/// an ampersand and a less than sign written under
+/// their entity spellings in that order after the
+/// doubling, the renderer holding no escape reading
+/// for either character (MN-2), and the underscores
 /// standing at a word's edge escaped and the opening
 /// bracket of a whole link spelling the name carries
 /// escaped, after those (MM-2 and ML-3).
 fn markdown_prose(text: &str) -> String {
     let escaped = text
         .replace('\\', "\\\\")
+        .replace('&', "&amp;")
         .replace('*', "\\*")
         .replace('`', "\\`")
-        .replace('<', "\\<")
+        .replace('<', "&lt;")
         .replace('\n', " ");
     escape_link_openings(&escape_word_edge_underscores(&escaped))
 }
