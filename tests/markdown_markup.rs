@@ -99,8 +99,8 @@ fn test_a_less_than_in_a_ranking_name_stands_escaped_in_its_cell() {
         .find(|line| line.contains("test_a"))
         .expect("the row stands");
     assert!(
-        row.contains("| test_a\\<b |"),
-        "the cell carries the escaped less than sign: {row}"
+        row.contains("| test_a&lt;b |"),
+        "the cell carries the less than sign under its entity spelling: {row}"
     );
 }
 
@@ -112,8 +112,8 @@ fn test_a_less_than_in_a_suite_name_stands_escaped_in_the_prose() {
         .find(|line| line.contains("The suite"))
         .expect("the suite sentence stands");
     assert!(
-        sentence.contains("suite\\<x"),
-        "the prose carries the escaped less than sign: {sentence}"
+        sentence.contains("suite&lt;x"),
+        "the prose carries the less than sign under its entity spelling: {sentence}"
     );
 }
 
