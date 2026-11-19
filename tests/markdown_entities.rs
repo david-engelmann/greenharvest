@@ -7,7 +7,7 @@
 //! this slice branches from, where the rendering writes
 //! a less than sign with a backslash before it and a
 //! character reference raw, and two stand on both heads
-//! at the lines MN-2 and MN-3 draw.
+//! at the lines MO-2 and MO-3 draw.
 
 use greenharvest::{build_plan, markdown_text, parse_budget, read_records_text, report_document};
 

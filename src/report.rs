@@ -182,7 +182,7 @@ fn field_texts<'a>(document: &'a JsonValue, field: &str) -> Vec<&'a str> {
 /// an ampersand and a less than sign written under
 /// their entity spellings in that order after the
 /// doubling, the renderer holding no escape reading
-/// for either character (MN-2), and the underscores
+/// for either character (MO-2), and the underscores
 /// standing at a word's edge escaped and the opening
 /// bracket of a whole link spelling the name carries
 /// escaped, after those (MM-2 and ML-3).
