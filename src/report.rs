@@ -292,7 +292,7 @@ fn escape_link_openings(text: &str) -> String {
     }
     let mut out = String::with_capacity(text.len() + 4);
     for (index, c) in chars.iter().enumerate() {
-        if escaped[*index] {
+        if escaped[index] {
             out.push('\\');
         }
         out.push(*c);
