@@ -236,24 +236,64 @@ fn escape_word_edge_underscores(text: &str) -> String {
     out
 }
 
-/// The opening bracket of a whole link spelling, an
-/// opening bracket and its closing bracket and an
-/// opening parenthesis standing immediately after,
+/// The opening bracket of a whole link spelling,
 /// written with a backslash before it, so the
 /// spelling reads as the characters it stands as
-/// (ML-3). A bracket standing without the whole
-/// spelling stands as it stands.
+/// (ML-3). The spelling's closing bracket is the
+/// closing bracket where the nesting of the
+/// brackets standing between the opening bracket
+/// and it balances, the brackets counted as they
+/// stand in the writing with the escaped brackets
+/// standing outside the count, and an opening
+/// parenthesis standing immediately after that
+/// closing bracket completes the spelling (MP-2).
+/// Every opening bracket is judged on its own
+/// balance, and the writing repeats until no
+/// opening bracket stands in a spelling, an escape
+/// moving the counting as it is written. A bracket
+/// standing without the whole spelling stands as
+/// it stands.
 fn escape_link_openings(text: &str) -> String {
     let chars: Vec<char> = text.chars().collect();
-    let mut out = String::with_capacity(text.len() + 4);
-    for (index, c) in chars.iter().enumerate() {
-        if *c == '[' {
-            let close = (index + 1..chars.len()).find(|&at| chars[at] == ']');
-            if let Some(at) = close {
-                if chars.get(at + 1) == Some(&'(') {
-                    out.push('\\');
+    let mut escaped = vec![false; chars.len()];
+    loop {
+        let mut target = None;
+        for (index, c) in chars.iter().enumerate() {
+            if *c != '[' || escaped[index] {
+                continue;
+            }
+            let mut depth = 0usize;
+            let mut close = None;
+            for at in index..chars.len() {
+                if escaped[at] {
+                    continue;
+                }
+                if chars[at] == '[' {
+                    depth += 1;
+                } else if chars[at] == ']' {
+                    depth -= 1;
+                    if depth == 0 {
+                        close = Some(at);
+                        break;
+                    }
                 }
             }
+            if let Some(at) = close {
+                if chars.get(at + 1) == Some(&'(') {
+                    target = Some(index);
+                    break;
+                }
+            }
+        }
+        match target {
+            Some(index) => escaped[index] = true,
+            None => break,
+        }
+    }
+    let mut out = String::with_capacity(text.len() + 4);
+    for (index, c) in chars.iter().enumerate() {
+        if escaped[index] {
+            out.push('\\');
         }
         out.push(*c);
     }
