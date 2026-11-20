@@ -3,11 +3,11 @@
 //! records the suite writes itself. Each pin plans a
 //! record set carrying the name it names and asserts
 //! the markdown the plan writes, the name reading as
-//! itself where the markdown is rendered. Nine pins
+//! itself where the markdown is rendered. Eight pins
 //! fail on the head this slice branches from, where
 //! the rendering reads a link spelling's closing
 //! bracket as the first closing bracket standing
-//! after the opening, and four stand on both heads
+//! after the opening, and five stand on both heads
 //! at the lines MP-2 and MP-3 draw.
 
 use greenharvest::{build_plan, markdown_text, parse_budget, read_records_text, report_document};
@@ -90,7 +90,7 @@ fn test_an_image_spelling_with_a_bracket_inside_in_a_ranking_name_stands_escaped
 fn test_a_link_spelling_under_an_unbalanced_bracket_in_a_ranking_name_stands_escaped_at_both_openings(
 ) {
     let md = rendered(&records_with_name("\"[a[b](x)\""), "100000");
-    let row = ranking_row(&md, "a[b]");
+    let row = ranking_row(&md, "b](x)");
     assert!(
         row.contains("| \\[a\\[b](x) |"),
         "the cell carries both openings escaped: {row}"
@@ -118,12 +118,12 @@ fn test_a_bracketed_link_spelling_inside_a_ranking_name_stands_escaped_at_its_op
 }
 
 #[test]
-fn test_a_thrice_nested_link_spelling_in_a_ranking_name_stands_escaped_at_the_innermost_opening() {
+fn test_a_thrice_nested_link_spelling_in_a_ranking_name_stands_escaped_at_every_opening() {
     let md = rendered(&records_with_name("\"[a [b [c](x)] d]\""), "100000");
     let row = ranking_row(&md, "[c]");
     assert!(
-        row.contains("| [a [b \\[c](x)] d] |"),
-        "the cell carries the innermost opening escaped: {row}"
+        row.contains("| \\[a \\[b \\[c](x)] d] |"),
+        "the cell carries every opening escaped: {row}"
     );
 }
 
